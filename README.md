@@ -22,7 +22,7 @@ Bash commands into the docke container
 docker exec --it <docker_it> bash
 ```
 
-## Build the app and manually export it
+## Build the app and automatically export it
 
 Open the ps vita ftp port with vita shell and get the ps vita ip address.
 
@@ -39,7 +39,7 @@ make vpksend
 
 On the psvita, in vita shell find the new file and install it by `pressing x` on the filename.
 
-## Build the app and automatically export it
+## Build the app and manually export it
 
 Build the application
 ```
