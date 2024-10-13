@@ -31,13 +31,15 @@ Set the PSVITAIP variable to the actual ps vita ip address:
 export PSVITAIP=<ip_address>
 ```
 
-Build the application
+Build the application and transfer the file to the psvita:
 ```
 cd ./src
 make vpksend
 ```
 
-## Build the app and manually export it
+On the psvita, in vita shell find the new file and install it by `pressing x` on the filename.
+
+## Build the app and automatically export it
 
 Build the application
 ```
@@ -52,3 +54,5 @@ Connect the psvita to computer with cable.
 Allow psvita to connect to computer with vita shell.
 
 On the computer, drag and drop the vpk to `ux0:/downloads` to the psvita peripherals.
+
+On the psvita, in vita shell find the new file and install it by `pressing x` on the filename.
