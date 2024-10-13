@@ -1,0 +1,17 @@
+version: '3'
+services:
+  vitaSDK:
+    container_name: vita2dProject
+    image: ubuntu:22.04
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - VITASDK=/usr/local/vitasdk
+      - PATH=/usr/local/vitasdk/bin:$PATH
+    volumes:
+      - .:/app
+    working_dir: /app
+    tty: true
+    command: bash

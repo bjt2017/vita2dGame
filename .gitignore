@@ -1,0 +1,9 @@
+.vscode
+*.o
+*.out
+*.vpk
+*.bin
+*.sfo
+*.elf
+*.velf
+src/.DS_Store
