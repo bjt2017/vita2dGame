@@ -7,3 +7,4 @@
 *.elf
 *.velf
 src/.DS_Store
+src/out

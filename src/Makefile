@@ -1,5 +1,5 @@
 TITLE_ID = VITA2DTST
-TARGET   = vita2dsample
+TARGET   = out/vita2dsample
 OBJS     = main.o $(ASSETS_OBJS)
 
 PREFIX  = arm-vita-eabi
@@ -23,6 +23,7 @@ CFLAGS += -I../libvita2d/include -I/usr/local/include/tmxlite
 LIBS += -L../libvita2d -L/usr/local/lib -ltmxlite
 
 all: $(TARGET).vpk
+	@rm -f $(OBJS) eboot.bin param.sfo
 
 # Génération du VPK avec la map
 %.vpk: eboot.bin
@@ -49,12 +50,17 @@ $(TARGET).elf: $(OBJS)
 %.o: %.png 
 	$(PREFIX)-ld -r -b binary -o $@ $<
 
+	
+	
+
+
 clean:
 	@rm -rf $(TARGET).vpk $(TARGET).velf $(TARGET).elf $(OBJS) \
 		eboot.bin param.sfo assets/map.o
 
 vpksend: $(TARGET).vpk
 	curl -T $(TARGET).vpk ftp://$(PSVITAIP):1337/ux0:/
+	@rm -f $(OBJS) eboot.bin param.sfo
 	@echo "Sent."
 
 send: eboot.bin

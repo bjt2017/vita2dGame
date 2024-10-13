@@ -17,9 +17,9 @@ Find the container id:
 docker ps
 ```
 
-Bash commands into the docke container
+Bash commands into the docker container
 ```
-docker exec --it <docker_it> bash
+docker exec --it <docker_id> bash
 ```
 
 ## Build the app and automatically export it
