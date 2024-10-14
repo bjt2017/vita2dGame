@@ -20,6 +20,7 @@ public:
     vita2d_texture *texture_idle;
     vita2d_texture *texture_walk;
     vita2d_texture *texture_bowlhair_idle;
+    vita2d_texture *tileset;
     vita2d_pgf *font;
 
     Player(int x, int y, int speed_value);

@@ -18,7 +18,9 @@
 
 #include <cstddef> 
 
+#include "map.hpp"
 #include "player.hpp"
+
 
 // Variables externes pour charger les assets des images
 extern unsigned char _binary_assets_assets_png_start;
@@ -46,8 +48,5 @@ extern unsigned char _binary_assets_bowlhair_idle_strip9_png_start;
 #define COLLIDE_ZONE_Y 13
 
 #define ZOOM 2.0f
-
-// Déclaration de la fonction pour dessiner la carte
-void drawMap(const tmx::Map& map, vita2d_texture* tileset, int tileWidth, int tileHeight);
 
 #endif 

@@ -1,7 +1,7 @@
 # Titre de l'application et cible de l'output
 TITLE_ID = VITA2DTST
 TARGET   = out/vita2dsample
-OBJS     = main.o player.o $(ASSETS_OBJS)  # Ajout de player.o ici
+OBJS     = main.o player.o map.o $(ASSETS_OBJS)  # Ajout de player.o ici
 
 # Configuration du compilateur et des flags
 PREFIX   = arm-vita-eabi
@@ -64,7 +64,7 @@ clean:
 
 # Envoi du fichier VPK à la Vita via FTP
 vpksend: $(TARGET).vpk
-	curl -T $(TARGET).vpk ftp://$(PSVITAIP):1337/ux0:/
+	curl -T $(TARGET).vpk ftp://$(PSVITAIP):1337/ux0:/downloads/
 	@rm -f $(OBJS) eboot.bin param.sfo
 	@echo "VPK sent to Vita."
 

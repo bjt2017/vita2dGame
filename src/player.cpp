@@ -20,6 +20,7 @@ Player::~Player() {
     vita2d_free_texture(texture_walk);
     vita2d_free_texture(texture_idle);
     vita2d_free_texture(texture_bowlhair_idle);
+    vita2d_free_texture(tileset);
     vita2d_free_pgf(font);
 }
 
@@ -72,4 +73,5 @@ void Player::draw() {
         vita2d_draw_line(posx, posy + PLAYER_SPRITE_HEIGHT * ZOOM, posx + PLAYER_SPRITE_WIDTH * ZOOM, posy + PLAYER_SPRITE_HEIGHT * ZOOM, RGBA8(255, 0, 0, 255)); 
         vita2d_draw_rectangle(posx, posy + COLLIDE_ZONE_Y, PLAYER_SPRITE_WIDTH * ZOOM, PLAYER_SPRITE_HEIGHT * ZOOM - COLLIDE_ZONE_Y, RGBA8(255, 0, 0, 255));
     }
+
 }
