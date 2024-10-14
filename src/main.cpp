@@ -1,7 +1,5 @@
-#include "main.hpp"
-#include "player.hpp"
+#include "include/main.hpp"
 
-// Fonction pour dessiner la carte
 void drawMap(const tmx::Map& map, vita2d_texture* tileset, int tileWidth, int tileHeight)
 {
     const auto& layers = map.getLayers();
@@ -44,7 +42,7 @@ void drawMap(const tmx::Map& map, vita2d_texture* tileset, int tileWidth, int ti
     }
 }
 
-// Point d'entrée principal
+
 int main() {
     SceCtrlData pad;
     vita2d_texture *tileset;
@@ -69,7 +67,7 @@ int main() {
     vita2d_set_clear_color(RGBA8(0x40, 0x40, 0x40, 0xFF));
 
     // Charger les textures
-    tileset = vita2d_load_PNG_buffer(&_binary_assets_assets_png_start);
+    tileset = vita2d_load_PNG_file("app0:assets/assets.png");
     if (!tileset) {
         printf("Erreur lors du chargement de l'image source\n");
         return -1;

@@ -18,6 +18,8 @@
 
 #include <cstddef> 
 
+#include "player.hpp"
+
 // Variables externes pour charger les assets des images
 extern unsigned char _binary_assets_assets_png_start;
 extern unsigned char _binary_assets_base_walk_strip8_png_start;

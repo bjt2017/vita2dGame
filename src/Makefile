@@ -31,7 +31,10 @@ all: $(TARGET).vpk
 # Génération du fichier VPK
 %.vpk: eboot.bin
 	vita-mksfoex -d ATTRIBUTE=0x800 -s TITLE_ID=$(TITLE_ID) "$(TARGET)" param.sfo
-	vita-pack-vpk -s param.sfo -b eboot.bin -a assets/map.tmx=assets/map.tmx $@
+	vita-pack-vpk -s param.sfo -b eboot.bin \
+	-a assets/map.tmx=assets/map.tmx \
+	-a assets/assets.png=assets/assets.png \
+	$@
 
 # Création de eboot.bin à partir du fichier velf
 eboot.bin: $(TARGET).velf
