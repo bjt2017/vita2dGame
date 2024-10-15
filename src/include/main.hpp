@@ -12,6 +12,7 @@
 #include <psp2/appmgr.h>
 
 #include <psp2/ctrl.h>
+#include <psp2/touch.h>
 #include <psp2/kernel/processmgr.h>
 
 #include <vita2d.h>
@@ -20,6 +21,7 @@
 
 #include "map.hpp"
 #include "player.hpp"
+#include "console.hpp"
 
 
 // Variables externes pour charger les assets des images
@@ -42,11 +44,11 @@ extern unsigned char _binary_assets_bowlhair_idle_strip9_png_start;
 #define PLAYER_SPRITE_X 40  // Position verticale du sprite de joueur dans l'image
 #define PLAYER_SPRITE_Y 21  // Position horizontale du sprite de joueur dans l'image
 #define PLAYER_SPRITE_WIDTH 16  // Largeur du sprite de joueur
-#define PLAYER_SPRITE_HEIGHT 19  // Hauteur du sprite de joueur
+#define PLAYER_SPRITE_HEIGHT 18  // Hauteur du sprite de joueur
 #define PLAYER_SPRITE_SPACING 80  // Espace entre chaque sprite (horizontalement)
 
 #define COLLIDE_ZONE_Y 13
 
-#define ZOOM 2.0f
+extern float ZOOM;
 
 #endif 

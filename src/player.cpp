@@ -65,13 +65,13 @@ void Player::draw() {
                                    flip, ZOOM);
 
     if (debug) {
-        vita2d_pgf_draw_textf(font, 10, 30, RGBA8(255, 255, 255, 255), 1.0f, "State: %s", (state == WALK) ? "WALK" : "IDLE");
-
         vita2d_draw_line(posx, posy, posx + PLAYER_SPRITE_WIDTH * ZOOM, posy, RGBA8(255, 0, 0, 255));
         vita2d_draw_line(posx, posy, posx, posy + PLAYER_SPRITE_HEIGHT * ZOOM, RGBA8(255, 0, 0, 255)); 
         vita2d_draw_line(posx + PLAYER_SPRITE_WIDTH * ZOOM, posy, posx + PLAYER_SPRITE_WIDTH * ZOOM, posy + PLAYER_SPRITE_HEIGHT * ZOOM, RGBA8(255, 0, 0, 255)); 
         vita2d_draw_line(posx, posy + PLAYER_SPRITE_HEIGHT * ZOOM, posx + PLAYER_SPRITE_WIDTH * ZOOM, posy + PLAYER_SPRITE_HEIGHT * ZOOM, RGBA8(255, 0, 0, 255)); 
-        vita2d_draw_rectangle(posx, posy + COLLIDE_ZONE_Y, PLAYER_SPRITE_WIDTH * ZOOM, PLAYER_SPRITE_HEIGHT * ZOOM - COLLIDE_ZONE_Y, RGBA8(255, 0, 0, 255));
+        vita2d_draw_rectangle(posx, posy + (PLAYER_SPRITE_HEIGHT-(PLAYER_SPRITE_HEIGHT - COLLIDE_ZONE_Y))*ZOOM, // Position
+         PLAYER_SPRITE_WIDTH * ZOOM, (PLAYER_SPRITE_HEIGHT - COLLIDE_ZONE_Y)*ZOOM, // Taille
+          RGBA8(255, 0, 0, 255));
     }
 
 }

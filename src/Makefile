@@ -1,7 +1,7 @@
 # Titre de l'application et cible de l'output
 TITLE_ID = VITA2DTST
 TARGET   = out/vita2dsample
-OBJS     = main.o player.o map.o $(ASSETS_OBJS)  # Ajout de player.o ici
+OBJS     = main.o player.o map.o console.o $(ASSETS_OBJS)
 
 # Configuration du compilateur et des flags
 PREFIX   = arm-vita-eabi
@@ -13,7 +13,7 @@ ASFLAGS  = $(CFLAGS)
 LIBS = -lvita2d -lSceDisplay_stub -lSceGxm_stub \
 	-lSceSysmodule_stub -lSceCtrl_stub -lScePgf_stub -lScePvf_stub \
 	-lSceCommonDialog_stub -lfreetype -lpng -ljpeg -lz -lm -lc -lSceAppMgr_stub \
-	-ltmxlite
+	-ltmxlite -lSceTouch_stub
 
 # Chercher tous les fichiers PNG dans le dossier assets
 ASSETS_PNGS := $(wildcard assets/*.png)
@@ -21,8 +21,8 @@ ASSETS_PNGS := $(wildcard assets/*.png)
 ASSETS_OBJS := $(ASSETS_PNGS:.png=.o)
 
 # Ajouter les chemins pour les includes et les librairies de libvita2d et tmxlite
-CFLAGS += -I../libvita2d/include -I/usr/local/include/tmxlite -Iinclude/
-LIBS   += -L../libvita2d -L/usr/local/lib -ltmxlite -Linclude
+CFLAGS += -I../libvita2d/include -I/usr/local/include/tmxlite -Iinclude/ 
+LIBS   += -L../libvita2d -L/usr/local/lib -ltmxlite -Linclude 
 
 # Commande principale pour tout générer
 all: $(TARGET).vpk
@@ -51,6 +51,10 @@ $(TARGET).elf: $(OBJS)
 # Compilation des fichiers .cpp en objets .o
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c $< -o $@
+
+# Compilation des fichiers .c en objets .o (pour debugScreen)
+%.o: %.c
+	$(PREFIX)-gcc $(CFLAGS) -c $< -o $@
 
 # Conversion des fichiers PNG en fichiers objets binaires .o
 %.o: %.png 
