@@ -28,6 +28,9 @@ LIBS   += -L../libvita2d -L/usr/local/lib -ltmxlite -Linclude
 all: $(TARGET).vpk
 	@rm -f $(OBJS) eboot.bin param.sfo
 
+check_out_dir:
+	@if [ ! -d "out" ]; then mkdir -p out; fi
+
 # Génération du fichier VPK
 %.vpk: eboot.bin
 	vita-mksfoex -d ATTRIBUTE=0x800 -s TITLE_ID=$(TITLE_ID) "$(TARGET)" param.sfo
