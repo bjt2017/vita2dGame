@@ -64,7 +64,17 @@ void Player::draw() {
                                    src_x, PLAYER_SPRITE_Y, PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT, 
                                    flip, ZOOM);
 
+    
+
     if (debug) {
+        console.log("Player position {X,Y} : {" + std::to_string(posx) + " , " + std::to_string(posy)+"}");
+        
+        if(state == WALK){
+            console.log("Player state : WALK");
+        }else{
+            console.log("Player state : IDLE");
+        }
+
         vita2d_draw_line(posx, posy, posx + PLAYER_SPRITE_WIDTH * ZOOM, posy, RGBA8(255, 0, 0, 255));
         vita2d_draw_line(posx, posy, posx, posy + PLAYER_SPRITE_HEIGHT * ZOOM, RGBA8(255, 0, 0, 255)); 
         vita2d_draw_line(posx + PLAYER_SPRITE_WIDTH * ZOOM, posy, posx + PLAYER_SPRITE_WIDTH * ZOOM, posy + PLAYER_SPRITE_HEIGHT * ZOOM, RGBA8(255, 0, 0, 255)); 

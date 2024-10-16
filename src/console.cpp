@@ -1,18 +1,26 @@
 #include "include/console.hpp"
 
 Console::Console() {
-    font = vita2d_load_default_pgf();
+    ready = false;
 }
 
 Console::~Console() {
     vita2d_free_pgf(font);
 }
 
+void Console::init() {
+    font = vita2d_load_default_pgf();
+    ready = true;
+}
+
+
 void Console::log(std::string message) {
+    if(!ready) return;
     logs.push_back(message);
 }
 
 void Console::show() {
+    if(!ready) return;
     int y = 40;
     int x = 20;
     vita2d_draw_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, RGBA8(0, 0, 0, 200));

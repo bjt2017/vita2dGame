@@ -19,8 +19,9 @@
 
 #include <cstddef> 
 
-#include "map.hpp"
+
 #include "player.hpp"
+#include "map.hpp"
 #include "console.hpp"
 
 
@@ -46,6 +47,10 @@ extern unsigned char _binary_assets_bowlhair_idle_strip9_png_start;
 #define PLAYER_SPRITE_WIDTH 16  // Largeur du sprite de joueur
 #define PLAYER_SPRITE_HEIGHT 18  // Hauteur du sprite de joueur
 #define PLAYER_SPRITE_SPACING 80  // Espace entre chaque sprite (horizontalement)
+
+#define PLAYER_SPEED 1
+
+extern Console console;
 
 #define COLLIDE_ZONE_Y 13
 
