@@ -12,6 +12,7 @@ class Console {
     public:
         Console();
         ~Console();
+        int mode = 0;
         void init();
         void clear();
         void log(std::string message);
@@ -21,8 +22,4 @@ class Console {
         std::vector<std::string> logs;
         bool ready = false;
 };
-
-
-
-
 #endif

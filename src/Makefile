@@ -1,7 +1,9 @@
 # Titre de l'application et cible de l'output
 TITLE_ID = VITA2DTST
-TARGET   = out/vita2dsample
-OBJS     = main.o player.o map.o console.o $(ASSETS_OBJS)
+TARGET_NAME = Farmland
+TARGET_DIR = out
+TARGET = $(TARGET_DIR)/$(TARGET_NAME)
+OBJS     = main.o player.o map.o console.o utils.o object.o $(ASSETS_OBJS)
 
 # Configuration du compilateur et des flags
 PREFIX   = arm-vita-eabi
@@ -15,9 +17,9 @@ LIBS = -lvita2d -lSceDisplay_stub -lSceGxm_stub \
 	-lSceCommonDialog_stub -lfreetype -lpng -ljpeg -lz -lm -lc -lSceAppMgr_stub \
 	-ltmxlite -lSceTouch_stub
 
-# Chercher tous les fichiers PNG dans le dossier assets
-ASSETS_PNGS := $(wildcard assets/*.png)
-# Convertir chaque fichier PNG en un fichier objet binaire .o
+# Chercher tous les fichiers PNG dans le dossier assets de manière récursive
+ASSETS_PNGS := $(shell find assets -type f -name '*.png')
+# Convertir chaque fichier PNG en un fichier objet binaire .o avec la structure des sous-dossiers préservée
 ASSETS_OBJS := $(ASSETS_PNGS:.png=.o)
 
 # Ajouter les chemins pour les includes et les librairies de libvita2d et tmxlite
@@ -25,18 +27,18 @@ CFLAGS += -I../libvita2d/include -I/usr/local/include/tmxlite -Iinclude/
 LIBS   += -L../libvita2d -L/usr/local/lib -ltmxlite -Linclude 
 
 # Commande principale pour tout générer
-all: $(TARGET).vpk
+all: check_out_dir $(TARGET).vpk
 	@rm -f $(OBJS) eboot.bin param.sfo
 
 check_out_dir:
-	@if [ ! -d "out" ]; then mkdir -p out; fi
+	@if [ ! -d "$(TARGET_DIR)" ]; then mkdir -p $(TARGET_DIR); fi
 
 # Génération du fichier VPK
 %.vpk: eboot.bin
-	vita-mksfoex -d ATTRIBUTE=0x800 -s TITLE_ID=$(TITLE_ID) "$(TARGET)" param.sfo
+	vita-mksfoex -d ATTRIBUTE=0x800 -s TITLE_ID=$(TITLE_ID) "$(TARGET_NAME)" param.sfo
 	vita-pack-vpk -s param.sfo -b eboot.bin \
 	-a assets/map.tmx=assets/map.tmx \
-	-a assets/assets.png=assets/assets.png \
+	-a ../sce_sys=sce_sys \
 	$@
 
 # Création de eboot.bin à partir du fichier velf
@@ -61,6 +63,7 @@ $(TARGET).elf: $(OBJS)
 
 # Conversion des fichiers PNG en fichiers objets binaires .o
 %.o: %.png 
+	@mkdir -p $(dir $@)  # Créer les sous-dossiers pour les objets compilés
 	$(PREFIX)-ld -r -b binary -o $@ $<
 
 # Nettoyage des fichiers générés
