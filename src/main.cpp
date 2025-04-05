@@ -1,18 +1,24 @@
-#include "include/main.hpp"
+#include "include/main.h"
+#include <psp2/appmgr.h>
+#include <GLES2/gl2.h>
+#include <vita2d.h>
+#include <psp2/power.h>
+#include <psp2/kernel/modulemgr.h>
 
-void move(SceCtrlData *pad, Player *player, Map *map);
-void draw(Player *player, Map *map);
+void move(SceCtrlData &pad, Player &player, Map &map);
+void draw(Player &player, Map &map);
+void update(Player &player);
 
 float ZOOM = 3.0f;
-Console console;
 
-std::vector<tmx::Object> list_collide_objects = {}; 
+std::vector<Rect> list_collide_rect = {}; 
 std::vector<Tree> list_tree = {};  
 
-std::vector<tmx::Object> list_collide_objects_on_screen = {}; 
-std::vector<Tree> list_tree_on_screen = {};  
+std::vector<Rect*> list_collide_rect_on_screen = {}; 
+std::vector<Tree*> list_tree_on_screen = {};  
 
 int main() {
+
     SceCtrlData pad, previousPad;
     SceTouchData touch_data;
 
@@ -22,15 +28,18 @@ int main() {
 
     Map map;
     // Créer un joueur au centre de l'écran
-    Player player(SCREEN_WIDTH / 2 - (PLAYER_SPRITE_WIDTH*ZOOM) / 2, SCREEN_HEIGHT / 2 - (PLAYER_SPRITE_HEIGHT*ZOOM) / 2, 2);
+    Player player(SCREEN_WIDTH / 2 - (PLAYER_REEL_WIDTH*ZOOM) / 2, SCREEN_HEIGHT / 2 - (PLAYER_REEL_HEIGHT*ZOOM) / 2);
 
-    map.init(&player);
+    map.init(player);
 
-    console.init();
+    Console::init();
 
     // Initialisation du touchpad
     sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
     sceTouchEnableTouchForce(SCE_TOUCH_PORT_FRONT);
+
+    sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
+
 
     // Initialisation du pad
     memset(&pad, 0, sizeof(pad));
@@ -38,211 +47,223 @@ int main() {
 
     // Boucle principale du jeu
     while (1) {
-        // Lecture des contrôles
         sceCtrlPeekBufferPositive(0, &pad, 1);
 
-        // Lecture des touches sur l'écran
         sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch_data, 1);
 
-        // Si l'utilisateur appuie sur Start, on quitte
         if (pad.buttons & SCE_CTRL_START)
             break;
 
-        // Gestion de l'état du bouton Select (transition de non appuyé à appuyé)
         if ((pad.buttons & SCE_CTRL_SELECT) && !(previousPad.buttons & SCE_CTRL_SELECT)) {
             player.debug = !player.debug;
         } 
-        //pour chaque touch sur l'écran faire un console.log
         for (SceUInt32 i = 0; i < touch_data.reportNum; i++) {
             if (touch_data.report[i].x != 0 && touch_data.report[i].y != 0) {
-                console.log("Touch detected at {X,Y} : {" + std::to_string(touch_data.report[i].x) + " , " + std::to_string(touch_data.report[i].y) + "}");
+                Console::log("Touch detected at {X,Y} : {" + std::to_string(touch_data.report[i].x) + " , " + std::to_string(touch_data.report[i].y) + "}");
             }
         }
-        //si y a pas de touch sur l'écran afficher le message
         if (touch_data.reportNum == 0) {
-            console.log("No touch detected");
+            Console::log("No touch detected");
         }
 
         vita2d_start_drawing();
         vita2d_clear_screen();
 
-        Utils::update_list(&map);
-
-        // Déplacer le joueur
-        move(&pad, &player, &map);
-
-        draw(&player, &map);
+        //update player position and animation
+        update(player);
+        move(pad, player, map);
+        Utils::update_list();
+        draw(player, map);
 
         if (player.debug) {
-            console.log("Nombre d'arbres : " + std::to_string(list_tree.size()));
+            Console::log("Nombre d'arbres : " + std::to_string(list_tree.size()));
+            Console::log("Nombre d'arbres sur l'écran : " + std::to_string(list_tree_on_screen.size()));
 
-            // Gestion de l'état du bouton Triangle (transition de non appuyé à appuyé)
             if ((pad.buttons & SCE_CTRL_TRIANGLE) && !(previousPad.buttons & SCE_CTRL_TRIANGLE)) {
-                console.mode = console.mode == 0 ? 1 : 0;
+                Console::mode = Console::mode == 0 ? 1 : 0;
             }
-            // Afficher tous les objets de collision
-            for (const auto& object : list_collide_objects_on_screen) {
-                if (object.getShape() == tmx::Object::Shape::Rectangle) {
+            for (const auto& rect : list_collide_rect) {
+                if (rect.getShape() == tmx::Object::Shape::Rectangle) {
                     // Dessin d'un rectangle
                     vita2d_draw_rectangle(
-                        object.getAABB().left * ZOOM - map.posX,
-                        object.getAABB().top * ZOOM - map.posY,
-                        object.getAABB().width * ZOOM,
-                        object.getAABB().height * ZOOM,
+                        rect.get_position_x() * ZOOM - map.posX,
+                        rect.get_position_y() * ZOOM - map.posY,
+                        rect.get_width() * ZOOM,
+                        rect.get_height() * ZOOM,
                         RGBA8(255, 0, 0, 255)
                     );
-                } else if (object.getShape() == tmx::Object::Shape::Polygon) {
-                    const auto& points = object.getPoints();
-                    const auto& position = object.getPosition(); // Position globale de l'objet
+                } else if (rect.getShape() == tmx::Object::Shape::Polygon) {
+                    /*const auto& points = object.getPoints();
+                    const auto& position = object.getPosition();
 
-                    // Vérifier s'il y a assez de points pour former un polygone
                     if (points.size() < 3) continue;
 
-                    // Dessiner les bordures du polygone en reliant chaque point au suivant
                     for (size_t i = 0; i < points.size(); ++i) {
-                        // Calculer les coordonnées réelles en tenant compte de la position globale de l'objet
                         float x1 = (position.x + points[i].x) * ZOOM - map.posX;
                         float y1 = (position.y + points[i].y) * ZOOM - map.posY;
 
                         float x2 = (position.x + points[(i + 1) % points.size()].x) * ZOOM - map.posX;
                         float y2 = (position.y + points[(i + 1) % points.size()].y) * ZOOM - map.posY;
 
-                        // Dessiner la ligne entre deux points consécutifs
                         vita2d_draw_line(
-                            x1, y1, // Point actuel
-                            x2, y2, // Point suivant (boucle avec le modulo pour revenir au premier point)
-                            RGBA8(255, 0, 0, 255)  // Rouge opaque pour les bordures
+                            x1, y1, 
+                            x2, y2, 
+                            RGBA8(255, 0, 0, 255)
                         );
-                    }
+                    }*/
                 }
                 
             }
-            // Afficher 2 lignes horizontales et verticales pour voir le centre de l'écran
             vita2d_draw_line(SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT, RGBA8(255, 0, 0, 255));
             vita2d_draw_line(0, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT / 2, RGBA8(255, 0, 0, 255));
-
-            console.show();
+            Console::show();
         }
-
-        player.update_animation(1.0f / 60.0f);
 
         vita2d_end_drawing();
         vita2d_swap_buffers();
-        console.clear();
-
-        // Mémoriser l'état actuel du pad pour la prochaine boucle
+        Console::clear();
         previousPad = pad;
     }
 
+    Console::shutdown();
     vita2d_fini();
     sceKernelExitProcess(0);
-
     return 0;
 }
-void draw(Player *player, Map *map)
-{
-    const auto& layers = map->map.getLayers();
 
-    console.log("Nombre de couches: " + std::to_string(layers.size()));
-    console.log("Taille de la carte: {" + std::to_string(map->mapWidth * map->tileWidth * ZOOM) + " , " + std::to_string(map->mapHeight * map->tileHeight * ZOOM) + "}");
+void update(Player &player) {
+    player.update();
+    Map::update();
+    for(Tree &tree : list_tree){
+        tree.update();
+    }
+}
+
+void draw(Player &player, Map &map)
+{
+    const auto& layers = map.map.getLayers();
+    bool is_player_draw = false;
 
     for (const auto& layer : layers) {
-        
         if (layer->getType() == tmx::Layer::Type::Tile) {
-            const auto* tileLayer = dynamic_cast<const tmx::TileLayer*>(layer.get());
+            const tmx::TileLayer& tile_layer = static_cast<const tmx::TileLayer&>(*layer);
 
             std::string name = layer->getName();
-            int actual_layer = std::stoi(Utils::split(name, '_', 1));
+            
+            std::string layerStr = Utils::split(name, '_', 1);
+            if(layerStr.empty()) {
+                Console::warning("Layer name is empty");
+            }
+            int actual_layer = layerStr.empty() ? 1 : std::stoi(layerStr);
+
             std::string layer_name = Utils::split(name, '_', 0);
 
-            bool draw_player = actual_layer == player->current_layer && Utils::split(name, '_', 2) == "over" && layer_name =="tiles";
-            
-            console.log("couche, over_player : " + std::to_string(actual_layer) + " , " + std::to_string(draw_player));
-
-            if (tileLayer) {
-                if(draw_player){
-                    player->draw();
-                }
-                map->drawLayer(tileLayer, layer_name == "arbre");
+            LayerType layer_type = LayerType::TILE;
+            if (layer_name == "arbre") {
+                layer_type = LayerType::TREE;
+            } else if (layer_name == "water") {
+                layer_type = LayerType::WATER;
             }
+
+            bool draw_player = !is_player_draw && actual_layer == player.get_layer() && Utils::split(name, '_', 2) == "over";
+            
+            if (draw_player) {
+                player.draw();
+                is_player_draw = true;
+            }
+            
+            map.draw_layer(tile_layer,layer_type);
+        }
+    }
+
+    for(Tree &tree : list_tree){
+        if(tree.on_screen()){
+            tree.draw();
         }
     }
 }
 
 
 
-
-void move(SceCtrlData *pad, Player *player, Map *map) {
-    // Log de la position actuelle de la carte et du joueur
-    console.log("Map Position : {" + std::to_string(map->posX) + " , " + std::to_string(map->posY) + "}");
-
+void move(SceCtrlData &pad, Player &player, Map &map) {
     int x = 0, y = 0;
 
-    // Si le bouton carré est appuyé, changer l'état en Axe
-    if(pad->buttons & SCE_CTRL_SQUARE){
-        player->changeState(Axe);
+    if(pad.buttons & SCE_CTRL_SQUARE){
+        player.change(AXE);
     }
-    if(player->current_state.can_move){
-        // Gestion du mouvement vertical
-        if(pad->buttons & SCE_CTRL_UP){
+    if(!player.get_current_state().blocking){
+        if(pad.buttons & SCE_CTRL_UP){
             y = floor(-PLAYER_SPEED * ZOOM);
-            player->direction_y = UP;
-
-        } else if(pad->buttons & SCE_CTRL_DOWN){
+            player.set_direction_y(UP);
+        } else if(pad.buttons & SCE_CTRL_DOWN){
             y = ceil(PLAYER_SPEED * ZOOM);
-            player->direction_y = DOWN;
+            player.set_direction_y(DOWN);
         }
-
-        // Gestion du mouvement horizontal
-        if(pad->buttons & SCE_CTRL_LEFT){
+        if(pad.buttons & SCE_CTRL_LEFT){
             x = floor(-PLAYER_SPEED * ZOOM);
-            player->direction_x = LEFT;
-        } else if(pad->buttons & SCE_CTRL_RIGHT){
+            player.set_direction_x(LEFT);
+        } else if(pad.buttons & SCE_CTRL_RIGHT){
             x = ceil(PLAYER_SPEED * ZOOM);
-            player->direction_x = RIGHT;
+            player.set_direction_x(RIGHT);
+        }
+        int deadzone = 35; 
+
+        Console::log("Pad LX : " + std::to_string(pad.lx));
+        Console::log("Pad LY : " + std::to_string(pad.ly));
+
+        if(abs(pad.lx - 128) > deadzone) { 
+            x = ((pad.lx - 128) / 128.0f) * PLAYER_SPEED * ZOOM;
+            player.set_direction_x((x > 0) ? RIGHT : LEFT);
+        }
+
+        if(abs(pad.ly - 128) > deadzone) { 
+            y = ((pad.ly - 128) / 128.0f) * PLAYER_SPEED * ZOOM;
+            player.set_direction_y((y > 0) ? DOWN : UP);
         }
     }
-    
+
     if(x==0 && y==0){
-        player->changeState(IDLE);
+        player.change(IDLE);
     }
 
-    console.log("Move : {" + std::to_string(x) + " , " + std::to_string(y) + "}");
+    bool map_can_move_left = map.posX + x <= (map.mapWidth * map.tileWidth * ZOOM) - SCREEN_WIDTH;
+    bool map_can_move_right = map.posX + x >= 0;
 
-    // Vérification des limites de déplacement de la carte
-    bool map_can_move_left = map->posX + x <= (map->mapWidth * map->tileWidth * ZOOM) - SCREEN_WIDTH;
-    bool map_can_move_right = map->posX + x >= 0;
-
-    bool map_can_move_up = map->posY + y <= (map->mapHeight * map->tileHeight * ZOOM) - SCREEN_HEIGHT;
-    bool map_can_move_down = map->posY + y >= 0;
+    bool map_can_move_up = map.posY + y <= (map.mapHeight * map.tileHeight * ZOOM) - SCREEN_HEIGHT;
+    bool map_can_move_down = map.posY + y >= 0;
 
     int maxX = x;
     int maxY = y;
 
-    for (const auto& object : list_collide_objects_on_screen) {
+    for (Rect rect : list_collide_rect) {
         int collideX;
         int collideY;
-        if(object.getShape() == tmx::Object::Shape::Rectangle){
-            auto collisionResult = player->collision_rect(object, map, x, y);
+        if(rect.getShape() == tmx::Object::Shape::Rectangle){
+            auto collisionResult = player.get_rect_collision().collision(rect, x, y);
             collideX = collisionResult.first;
             collideY = collisionResult.second;
             
-        } else if (object.getShape() == tmx::Object::Shape::Polygon){
-            auto collisionResult = player->collision_polygon(object, map, x, y);
-            collideX = collisionResult.first;
-            collideY = collisionResult.second;
+        } else if (rect.getShape() == tmx::Object::Shape::Polygon){
+            //TODO
         }
         maxX = (x > 0) ? std::min(maxX, collideX) : std::max(maxX, collideX);
         maxY = (y > 0) ? std::min(maxY, collideY) : std::max(maxY, collideY);
     }
 
-    for (Tree& tree : list_tree){
-        const bool colision = player->collision_bounding_box({tree.x*ZOOM,tree.y*ZOOM,tree.width*ZOOM,tree.heigth*ZOOM},map);
-        console.log("colision : " + std::to_string(colision));
-        if(colision){
-            tree.status = SELECT;
-        } else{
-            tree.status = NORMAL;
+    for (Tree &tree : list_tree){
+        if(tree.on_screen()){
+            const bool can_interact = tree.can_interact(player.get_rect(), player.get_direction_x() == RIGHT);
+            if (can_interact) {
+                //console.log("current_state : " + player.current_state.state + " frame : " + std::to_string(player.frame) + " action_frame : " + std::to_string(player.current_state.action_frame));
+                if(player.get_current_state().state == AXE && player.get_frame()==player.get_current_state().action_frame-1){
+                    tree.interaction();
+                }
+                else{
+                    tree.change(SELECT);
+                }
+            } else {
+                tree.change(NORMAL);
+            }
         }
     }
 
@@ -255,45 +276,43 @@ void move(SceCtrlData *pad, Player *player, Map *map) {
         }
     }
 
+    Console::log("maxX : " + std::to_string(maxX) + " maxY : " + std::to_string(maxY));
 
-    // Vérification si le joueur peut se déplacer dans les directions spécifiées
-    if(map_can_move_left && player->direction_x == RIGHT && player->posx_player == player_center_x){
-        map->move(maxX, 0);
-    } else if(player->direction_x == RIGHT){
-        if(player->posx_player < player_center_x && player->posx_player + maxX > player_center_x){
-            maxX = player_center_x - player->posx_player;
+    if(map_can_move_left && player.get_direction_x() == RIGHT && player.get_position_x() == player_center_x){
+        map.move(maxX, 0);
+    } else if(player.get_direction_x() == RIGHT){
+        if(player.get_position_x() < player_center_x && player.get_position_x() + maxX > player_center_x){
+            maxX = player_center_x - player.get_position_x();
         }
-        player->move(maxX, 0);
+        player.move(maxX, 0);
     }
-    
-    if(map_can_move_right && player->direction_x == LEFT && player->posx_player == player_center_x){
-        map->move(maxX, 0);
-    } else if(player->direction_x == LEFT){
-        if(player->posx_player > player_center_x && player->posx_player + maxX < player_center_x){
-            maxX = player_center_x - player->posx_player;
+    else if(map_can_move_right && player.get_direction_x() == LEFT && player.get_position_x() == player_center_x){
+        map.move(maxX, 0);
+    } else if(player.get_direction_x() == LEFT){
+        if(player.get_position_x() > player_center_x && player.get_position_x() + maxX < player_center_x){
+            maxX = player_center_x - player.get_position_x();
         }
-        player->move(maxX, 0);
-    }
-
-    if(map_can_move_up && player->direction_y == DOWN && player->posy_player == player_center_y){
-        map->move(0, maxY);
-    } else if(player->direction_y == DOWN){
-        if(player->posy_player < player_center_y && player->posy_player + maxY > player_center_y){
-            maxY = player_center_y - player->posy_player;
-        }
-        player->move(0, maxY);
+        player.move(maxX, 0);
     }
 
-    if(map_can_move_down && player->direction_y == UP && player->posy_player == player_center_y){
-        map->move(0, maxY);
-    }
-    else if(player->direction_y == UP){
-        if(player->posy_player > player_center_y && player->posy_player + maxY < player_center_y){
-            maxY = player_center_y - player->posy_player;
+    if(map_can_move_up && player.get_direction_y() == DOWN && player.get_position_y() == player_center_y){
+        map.move(0, maxY);
+    } else if(player.get_direction_y() == DOWN){
+        if(player.get_position_y() < player_center_y && player.get_position_y() + maxY > player_center_y){
+            maxY = player_center_y - player.get_position_y();
         }
-        player->move(0, maxY);
+        player.move(0, maxY);
+    }
+    else if(map_can_move_down && player.get_direction_y() == UP && player.get_position_y() == player_center_y){
+        map.move(0, maxY);
+    }
+    else if(player.get_direction_y() == UP){
+        if(player.get_position_y() > player_center_y && player.get_position_y() + maxY < player_center_y){
+            maxY = player_center_y - player.get_position_y();
+        }
+        player.move(0, maxY);
     }
 
-    // Changer l'état du joueur selon qu'il bouge ou non
-    player->changeState((maxX == 0 && maxY == 0) ? IDLE : WALK);
+    player.change((maxX == 0 && maxY == 0) ? IDLE : WALK);
+   
 }

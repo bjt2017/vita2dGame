@@ -1,0 +1,13 @@
+extern unsigned char _binary_assets_Characters_Idle_base_png_start;
+extern unsigned char _binary_assets_Characters_Idle_bowlhair_png_start;
+extern unsigned char _binary_assets_Characters_Idle_tools_png_start;
+
+extern unsigned char _binary_assets_Characters_Walk_base_png_start;
+extern unsigned char _binary_assets_Characters_Walk_bowlhair_png_start;
+extern unsigned char _binary_assets_Characters_Walk_tools_png_start;
+
+extern unsigned char _binary_assets_Characters_Axe_base_png_start;
+extern unsigned char _binary_assets_Characters_Axe_bowlhair_png_start;
+extern unsigned char _binary_assets_Characters_Axe_tools_png_start;
+
+extern unsigned char _binary_assets_Tree_leaf_png_start;

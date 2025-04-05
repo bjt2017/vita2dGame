@@ -16,9 +16,9 @@
 #include <sstream>
 #include <cmath>
 
-#include "player.hpp"
+#include "objects/player.hpp"
 #include "map.hpp"
-#include "utils.hpp"
+#include "utils.h"
 #include "globals.hpp"
 
 #endif 

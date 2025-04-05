@@ -9,3 +9,6 @@
 *.velf
 src/.DS_Store
 src/out
+/unused
+.DS_Store
+*.aseprite

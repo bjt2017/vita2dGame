@@ -1,22 +1,24 @@
 #include "include/console.hpp"
 
-Console::Console() {
-    ready = false;
-}
-
-Console::~Console() {
-    vita2d_free_pgf(font);
-}
+vita2d_pgf* Console::font = nullptr;
+std::vector<std::string> Console::logs;
+std::vector<std::string> Console::warnings;
+bool Console::ready = false;
+int Console::mode = 0;
 
 void Console::init() {
     font = vita2d_load_default_pgf();
     ready = true;
+    mode = 0;
 }
 
-
-void Console::log(std::string message) {
+void Console::log(const std::string& message) {
     if(!ready) return;
     logs.push_back(message);
+}
+void Console::warning(const std::string& message) {
+    if(!ready) return;
+    warnings.push_back("[!] :  " + message);
 }
 
 void Console::show() {
@@ -29,14 +31,24 @@ void Console::show() {
             vita2d_pgf_draw_text(font, x, y, RGBA8(255, 255, 255, 255), 1.0f, log.c_str());
             y += 20;
         }
+        for(auto& warning : warnings) {
+            vita2d_pgf_draw_text(font, x, y, RGBA8(255, 165, 0, 255), 1.0f, warning.c_str());
+            y += 20;
+        }
     }else if(mode==1){
         vita2d_pgf_draw_text(font, 20, 20, RGBA8(255, 255, 255, 255), 1.0f, "Show collision mode");
     }
-    
-    
 }
 
 void Console::clear() {
     logs.clear();
+    warnings.clear();
+}
+
+void Console::shutdown() {
+    if (font) {
+        vita2d_free_pgf(font);
+        font = nullptr; 
+    }
 }
 

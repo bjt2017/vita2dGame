@@ -3,11 +3,11 @@ TITLE_ID = VITA2DTST
 TARGET_NAME = Farmland
 TARGET_DIR = out
 TARGET = $(TARGET_DIR)/$(TARGET_NAME)
-OBJS     = main.o player.o map.o console.o utils.o object.o $(ASSETS_OBJS)
+OBJS     = main.o player.o map.o console.o utils.o rect.o tree.o $(ASSETS_OBJS)
 
 # Configuration du compilateur et des flags
 PREFIX   = arm-vita-eabi
-CXX      = $(PREFIX)-g++
+CXX      = $(PREFIX)-g++ -std=c++17
 CFLAGS   = -Wl,-q -Wall -fno-lto
 ASFLAGS  = $(CFLAGS)
 
@@ -82,3 +82,11 @@ vpksend: $(TARGET).vpk
 send: eboot.bin
 	curl -T eboot.bin ftp://$(PSVITAIP):1337/ux0:/app/$(TITLE_ID)/
 	@echo "Eboot.bin sent to Vita."
+
+
+opti: $(ASSETS_PNGS)
+	@for png_file in $(ASSETS_PNGS); do \
+		echo "Optimizing $$png_file"; \
+		pngcrush -brute $$png_file temp.png && mv temp.png $$png_file; \
+		pngquant --quality=65-80 $$png_file --output $$png_file; \
+	done

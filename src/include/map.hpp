@@ -6,12 +6,18 @@
 #include <tmxlite/TileLayer.hpp>  
 #include <tmxlite/ObjectGroup.hpp> 
 #include <vector>
-#include "player.hpp"   
+#include "objects/player.hpp"   
 #include "console.hpp" 
-#include "utils.hpp"
+#include "utils.h"
 #include <psp2/kernel/processmgr.h>
 
 class Player;
+
+enum LayerType {
+    TILE,
+    TREE,
+    WATER
+};
 
 class Map {
 public:
@@ -26,15 +32,22 @@ public:
 
     int posX;
     int posY;
+
+    int firstTileX;
+    int firstTileY;
+    int lastTileX;
+    int lastTileY;
+
+    static float water_timer;
+    static int water_frame;
     
     Map();
     ~Map();
-    void init(Player *player);
-    void draw();
-    void drawLayer(const tmx::TileLayer* layer,bool check);
-    void drawTile(tmx::TileLayer::Tile tile,int x, int y,bool check);
+    void init(Player &player);
+    static void update();
+    void draw_layer(const tmx::TileLayer& layer,LayerType type);
+    void draw_tile(tmx::TileLayer::Tile tile,int x, int y,LayerType type);
     void move(int x, int y);
-
 };
 
 
