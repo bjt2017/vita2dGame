@@ -57,7 +57,11 @@ void Map::init(Player &player){
                 
                 if (actual_layer == player.get_layer() && type == "colision") {
                     for(const auto& object : objects){
-                        list_collide_rect.push_back(Rect(object));
+                        if(object.getShape() == tmx::Object::Shape::Rectangle){
+                            list_collide_rect.push_back(Rect(object));
+                        }else if(object.getShape() == tmx::Object::Shape::Polygon){
+                            list_collide_rect.push_back(Polygon(object));
+                        }
                     }
                 } else if (type == "animation") {
                     for (const auto& object : objects) {

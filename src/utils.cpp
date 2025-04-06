@@ -26,17 +26,17 @@ Tree* Utils::find_tree(int x, int y) {
 //unused
 void Utils::update_list() {
 
-    list_collide_rect_on_screen.clear();
+    //list_collide_rect_on_screen.clear();
     list_tree_on_screen.clear();
 
     list_collide_rect_on_screen.reserve(list_collide_rect.size());
     list_tree_on_screen.reserve(list_tree.size());
 
-    for (auto& object : list_collide_rect) {
-        if (object.on_screen()) {
-            list_collide_rect_on_screen.push_back(&object);  
-        }
-    }
+    // for (auto& object : list_collide_rect) {
+    //     if (object.on_screen()) {
+    //         list_collide_rect_on_screen.push_back(&object);  
+    //     }
+    // }
 
     for (auto& tree : list_tree) {
         if (tree.on_screen()) {

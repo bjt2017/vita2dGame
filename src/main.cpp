@@ -11,7 +11,7 @@ void update(Player &player);
 
 float ZOOM = 3.0f;
 
-std::vector<Rect> list_collide_rect = {}; 
+std::vector<Shape> list_collide_rect = {}; 
 std::vector<Tree> list_tree = {};  
 
 std::vector<Rect*> list_collide_rect_on_screen = {}; 
@@ -82,38 +82,39 @@ int main() {
             if ((pad.buttons & SCE_CTRL_TRIANGLE) && !(previousPad.buttons & SCE_CTRL_TRIANGLE)) {
                 Console::mode = Console::mode == 0 ? 1 : 0;
             }
-            for (const auto& rect : list_collide_rect) {
-                if (rect.getShape() == tmx::Object::Shape::Rectangle) {
-                    // Dessin d'un rectangle
-                    vita2d_draw_rectangle(
-                        rect.get_position_x() * ZOOM - map.posX,
-                        rect.get_position_y() * ZOOM - map.posY,
-                        rect.get_width() * ZOOM,
-                        rect.get_height() * ZOOM,
-                        RGBA8(255, 0, 0, 255)
-                    );
-                } else if (rect.getShape() == tmx::Object::Shape::Polygon) {
-                    /*const auto& points = object.getPoints();
-                    const auto& position = object.getPosition();
-
-                    if (points.size() < 3) continue;
-
-                    for (size_t i = 0; i < points.size(); ++i) {
-                        float x1 = (position.x + points[i].x) * ZOOM - map.posX;
-                        float y1 = (position.y + points[i].y) * ZOOM - map.posY;
-
-                        float x2 = (position.x + points[(i + 1) % points.size()].x) * ZOOM - map.posX;
-                        float y2 = (position.y + points[(i + 1) % points.size()].y) * ZOOM - map.posY;
-
-                        vita2d_draw_line(
-                            x1, y1, 
-                            x2, y2, 
+            for (const auto& shape : list_collide_rect) {
+                std::visit([&](const auto& obj) {
+                    using T = std::decay_t<decltype(obj)>;
+                
+                    if constexpr (std::is_same_v<T, Rect>) {
+                        // Dessin d'un rectangle
+                        vita2d_draw_rectangle(
+                            obj.get_position_x() * ZOOM - map.posX,
+                            obj.get_position_y() * ZOOM - map.posY,
+                            obj.get_width() * ZOOM,
+                            obj.get_height() * ZOOM,
                             RGBA8(255, 0, 0, 255)
                         );
-                    }*/
-                }
+                    } else if constexpr (std::is_same_v<T, Polygon>) {
+                        const auto& points = obj.get_points();
+                        if (points.size() < 3) return;
                 
+                        const int posX = obj.get_position_x();
+                        const int posY = obj.get_position_y();
+                
+                        for (size_t i = 0; i < points.size(); ++i) {
+                            float x1 = (points[i].first + posX) * ZOOM - map.posX;
+                            float y1 = (points[i].second + posY) * ZOOM - map.posY;
+                
+                            float x2 = (points[(i + 1) % points.size()].first + posX) * ZOOM - map.posX;
+                            float y2 = (points[(i + 1) % points.size()].second + posY) * ZOOM - map.posY;
+                
+                            vita2d_draw_line(x1, y1, x2, y2, RGBA8(255, 0, 0, 255));
+                        }
+                    }
+                }, shape);
             }
+            
             vita2d_draw_line(SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT, RGBA8(255, 0, 0, 255));
             vita2d_draw_line(0, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT / 2, RGBA8(255, 0, 0, 255));
             Console::show();
@@ -235,20 +236,27 @@ void move(SceCtrlData &pad, Player &player, Map &map) {
     int maxX = x;
     int maxY = y;
 
-    for (Rect rect : list_collide_rect) {
-        int collideX;
-        int collideY;
-        if(rect.getShape() == tmx::Object::Shape::Rectangle){
-            auto collisionResult = player.get_rect_collision().collision(rect, x, y);
-            collideX = collisionResult.first;
-            collideY = collisionResult.second;
-            
-        } else if (rect.getShape() == tmx::Object::Shape::Polygon){
-            //TODO
-        }
-        maxX = (x > 0) ? std::min(maxX, collideX) : std::max(maxX, collideX);
-        maxY = (y > 0) ? std::min(maxY, collideY) : std::max(maxY, collideY);
+    for (const auto& shape : list_collide_rect) {
+        std::visit([&](const auto& obj) {
+            using T = std::decay_t<decltype(obj)>;
+            int collideX = 0;
+            int collideY = 0;
+    
+            if constexpr (std::is_same_v<T, Rect>) {
+                auto collisionResult = player.get_rect_collision().collision(obj, x, y);
+                collideX = collisionResult.first;
+                collideY = collisionResult.second;
+            } else if constexpr (std::is_same_v<T, Polygon>) {
+                auto collisionResult = player.get_rect_collision().collision(obj, x, y);
+                collideX = collisionResult.first;
+                collideY = collisionResult.second;
+            }
+    
+            maxX = (x > 0) ? std::min(maxX, collideX) : std::max(maxX, collideX);
+            maxY = (y > 0) ? std::min(maxY, collideY) : std::max(maxY, collideY);
+        }, shape);
     }
+    
 
     for (Tree &tree : list_tree){
         if(tree.on_screen()){

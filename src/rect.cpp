@@ -1,8 +1,15 @@
 #include "include/types/rect.hpp"
+#include "include/types/polygon.hpp"
+
 
 int Rect::map_pos_x = 0;
 int Rect::map_pos_y = 0;
 float Rect::zoom = 3.0f;
+
+bool segment_intersects_rect(int x1, int y1, int x2, int y2,
+    int left, int right, int top, int bottom);
+
+bool lines_intersect(int x1, int y1, int x2, int y2,int x3, int y3, int x4, int y4);
 
 Rect::Rect(const tmx::Object& object, bool resize) : resize(resize) {
     if (object.getShape() == tmx::Object::Shape::Rectangle) {
@@ -94,4 +101,84 @@ std::pair<int, int> Rect::collision(const Rect& other) const
     int overlapY  = (overlapY1 < overlapY2) ? overlapY1 : -overlapY2;
 
     return {overlapX, overlapY};
+}
+
+std::pair<int, int> Rect::collision(const Polygon& poly) const {
+    auto [dx, dy] = collision(poly.get_bounding_box());
+    if (dx != 0 || dy != 0)
+        return {0, 0}; 
+
+    auto [left, right, top, bottom] = get_position();
+    const auto& points = poly.get_points();
+    
+    const int posX = poly.get_position_x();
+    const int posY = poly.get_position_y();
+
+    for (size_t i = 0; i < points.size(); ++i) {
+        float x1 = (points[i].first + posX) * zoom - map_pos_x;
+        float y1 = (points[i].second + posY) * zoom - map_pos_y;
+                
+        float x2 = (points[(i + 1) % points.size()].first + posX) * zoom - map_pos_x;
+        float y2 = (points[(i + 1) % points.size()].second + posY) * zoom - map_pos_y;
+
+        if (segment_intersects_rect(x1, y1, x2, y2, left, right, top, bottom)) {
+            return {0, 0}; 
+        }
+    }
+
+    return {get_position_x(), get_position_y()};
+}
+
+std::pair<int, int> Rect::collision(const Polygon& poly, int dx, int dy) const {
+    auto [quickDx, quickDy] = collision(poly.get_bounding_box(), dx, dy);
+    if (quickDx == dx && quickDy == dy) return {dx, dy};
+
+    const auto& points = poly.get_points();
+    const int posX = poly.get_position_x();
+    const int posY = poly.get_position_y();
+
+    auto [l, r, t, b] = this->get_position();
+
+    for (int testDx = dx; testDx != (dx > 0 ? -1 : 1) ; testDx += (dx > 0 ? -1 : 1)) {
+        for (int testDy = dy; testDy != (dy > 0 ? -1 : 1); testDy += (dy > 0 ? -1 : 1)) {
+
+            bool collision = false;
+
+            for (size_t i = 0; i < points.size(); ++i) {
+                float x1 = (points[i].first + posX) * zoom - map_pos_x;
+                float y1 = (points[i].second + posY) * zoom - map_pos_y;
+
+                float x2 = (points[(i + 1) % points.size()].first + posX) * zoom - map_pos_x;
+                float y2 = (points[(i + 1) % points.size()].second + posY) * zoom - map_pos_y;
+
+                if (segment_intersects_rect(x1, y1, x2, y2, l+testDx, r+testDx, t+testDy, b+testDy)) {
+                    collision = true;
+                    break;
+                }
+            }
+
+            if (!collision) {
+                return {testDx, testDy}; 
+            }
+        }
+    }
+
+    return {0, 0}; 
+}
+
+
+bool lines_intersect(int x1, int y1, int x2, int y2,int x3, int y3, int x4, int y4) {
+    auto ccw = [](int ax, int ay, int bx, int by, int cx, int cy) {
+        return (cy - ay) * (bx - ax) > (by - ay) * (cx - ax);
+    };
+    return (ccw(x1, y1, x3, y3, x4, y4) != ccw(x2, y2, x3, y3, x4, y4)) &&
+    (ccw(x1, y1, x2, y2, x3, y3) != ccw(x1, y1, x2, y2, x4, y4));
+}
+
+bool segment_intersects_rect(int x1, int y1, int x2, int y2, int left, int right, int top, int bottom) {
+    return
+        lines_intersect(x1, y1, x2, y2, left, top, right, top) ||     
+        lines_intersect(x1, y1, x2, y2, right, top, right, bottom) || 
+        lines_intersect(x1, y1, x2, y2, right, bottom, left, bottom) || 
+        lines_intersect(x1, y1, x2, y2, left, bottom, left, top);       
 }

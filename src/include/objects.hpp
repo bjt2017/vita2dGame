@@ -1,7 +1,7 @@
 #pragma once
-#include "types/rect.hpp"
 #include <vita2d.h>
 #include <unordered_set>
+#include "types/polygon.hpp"
 
 enum class ObjectType {
     PLAYER,

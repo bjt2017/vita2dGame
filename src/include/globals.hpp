@@ -1,6 +1,7 @@
 // globals.hpp
 #pragma once
 
+#include <variant>
 #include <vector>
 #include <tmxlite/Object.hpp>
 #include "console.hpp"
@@ -19,8 +20,12 @@ extern unsigned char _binary_assets_assets_png_start;
 
 extern float ZOOM;
 
+
 // Variables externes globales
-extern std::vector<Rect> list_collide_rect;
+using Shape = std::variant<Rect, Polygon>;
+extern std::vector<Shape> list_collide_rect;
+
+//extern std::vector<Rect> list_collide_rect;
 extern std::vector<Tree> list_tree;
 
 extern std::vector<Rect*> list_collide_rect_on_screen;

@@ -1,13 +1,15 @@
 #pragma once
-#include <vector>
+
+#include "../console.hpp"
 #include <tuple>
 #include <tmxlite/Object.hpp>
+
+class Polygon;
 
 class Rect {
 protected:
     static int map_pos_x,map_pos_y;
     static float zoom;
-private:
     int x, y, width, height;
     bool resize;
 
@@ -22,6 +24,9 @@ public:
 
     std::pair<int, int> collision(const Rect& other) const;
     std::pair<int, int> collision(const Rect& other, int dx, int dy) const;
+
+    std::pair<int, int> collision(const Polygon& other) const;
+    std::pair<int, int> collision(const Polygon& other, int dx, int dy) const;
 
     bool on_screen() const {
         auto [left, right, top, bottom] = get_position();
@@ -51,6 +56,13 @@ public:
         zoom = z;
     }
 
+    static int get_map_pos_x() {
+        return map_pos_x;
+    }
+    static int get_map_pos_y() {
+        return map_pos_y;
+    }
+    
     static const float& get_zoom() {
         return zoom;
     }
