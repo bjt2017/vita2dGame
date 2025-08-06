@@ -20,11 +20,25 @@ enum LayerType {
     WATER
 };
 
+enum class TransitionState {
+    None,
+    FadeOut,
+    Loading,
+    FadeIn
+};
+
+struct Transition {
+    TransitionState state = TransitionState::None;
+    float alpha = 0.0f; 
+    float speed = 10.0f; 
+};
+
 class Map {
 public:
     tmx::Map map;
     const tmx::LayerGroup* current_map=nullptr;
     std::string current_map_name;
+    std::string new_map_name;
     vita2d_texture *tileset;
 
     int tileWidth;
@@ -41,14 +55,19 @@ public:
     int lastTileX;
     int lastTileY;
 
-    static float water_timer;
-    static int water_frame;
-    
+    float water_timer = 0.0f;
+    int water_frame = 0;
+
+    Transition transition;
+
     Map();
     ~Map();
     void init(Player &player);
+    void init_change_map(const std::string& map_name, Player &player);
+    void draw_transition();
+    void change_map(Player &player){change_map(new_map_name, player);}
     void change_map(const std::string& map_name,Player &player);
-    static void update();
+    void update(Player &player);
     void combine_collide_rect(const Player& player);
     void create_house(const tmx::Object& object);
 

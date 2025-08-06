@@ -7,7 +7,8 @@
 
 void move(SceCtrlData &pad, Player &player, Map &map);
 void draw(Player &player, Map &map);
-void update(Player &player);
+void update(Player &player, Map &map);
+void show_debug_info(const Map& map,const SceCtrlData& pad,const SceCtrlData& previousPad);
 
 float ZOOM = 3.0f;
 
@@ -53,9 +54,7 @@ int main() {
 
         sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch_data, 1);
 
-        if (pad.buttons & SCE_CTRL_START)
-            break;
-
+        if (pad.buttons & SCE_CTRL_START) break;
         if ((pad.buttons & SCE_CTRL_SELECT) && !(previousPad.buttons & SCE_CTRL_SELECT)) {
             player.debug = !player.debug;
         } 
@@ -68,102 +67,20 @@ int main() {
             Console::log("No touch detected");
         }
 
+        // Démarrer le render et effacer l'écran
         vita2d_start_drawing();
         vita2d_clear_screen();
 
         //update player position and animation
-        move(pad, player, map);
-        update(player);
+        if(map.transition.state == TransitionState::None){
+            move(pad, player, map);
+        }
+        update(player, map);
         draw(player, map);
 
+        // Afficher les objets de collision, les portails et les logs
         if (player.debug) {
-            Console::log("Nombre d'arbres : " + std::to_string(list_tree->size()));
-
-            if ((pad.buttons & SCE_CTRL_TRIANGLE) && !(previousPad.buttons & SCE_CTRL_TRIANGLE)) {
-                Console::mode = Console::mode == 0 ? 1 : 0;
-            }
-            for (const auto& [layerIndex, shapes] : list_collide_rect_by_layer) {
-                for (const auto& shape : shapes) {
-                    std::visit([&](const auto& obj) {
-                        using T = std::decay_t<decltype(obj)>;
-
-                        if constexpr (std::is_same_v<T, Rect>) {
-                            vita2d_draw_rectangle(
-                                obj.get_position_x() * ZOOM - map.posX,
-                                obj.get_position_y() * ZOOM - map.posY,
-                                obj.get_width() * ZOOM,
-                                obj.get_height() * ZOOM,
-                                RGBA8(255, 0, 0, 255)
-                            );
-                        } else if constexpr (std::is_same_v<T, Polygon>) {
-                            const auto& points = obj.get_points();
-                            if (points.size() < 3) return;
-
-                            const int posX = obj.get_position_x();
-                            const int posY = obj.get_position_y();
-
-                            for (size_t i = 0; i < points.size(); ++i) {
-                                float x1 = (points[i].first + posX) * ZOOM - map.posX;
-                                float y1 = (points[i].second + posY) * ZOOM - map.posY;
-
-                                float x2 = (points[(i + 1) % points.size()].first + posX) * ZOOM - map.posX;
-                                float y2 = (points[(i + 1) % points.size()].second + posY) * ZOOM - map.posY;
-
-                                vita2d_draw_line(x1, y1, x2, y2, RGBA8(255, 0, 0, 255));
-                            }
-                        }
-                    }, shape);
-                }
-            }
-
-
-            // Afficher les formes globales (en dehors des couches)
-            for (const auto& shape : list_collide_rect_global) {
-                std::visit([&](const auto& obj) {
-                    using T = std::decay_t<decltype(obj)>;
-
-                    if constexpr (std::is_same_v<T, Rect>) {
-                        vita2d_draw_rectangle(
-                            obj.get_position_x() * ZOOM - map.posX,
-                            obj.get_position_y() * ZOOM - map.posY,
-                            obj.get_width() * ZOOM,
-                            obj.get_height() * ZOOM,
-                            RGBA8(255, 0, 0, 255)
-                        );
-                    } else if constexpr (std::is_same_v<T, Polygon>) {
-                        const auto& points = obj.get_points();
-                        if (points.size() < 3) return;
-
-                        const int posX = obj.get_position_x();
-                        const int posY = obj.get_position_y();
-
-                        for (size_t i = 0; i < points.size(); ++i) {
-                            float x1 = (points[i].first + posX) * ZOOM - map.posX;
-                            float y1 = (points[i].second + posY) * ZOOM - map.posY;
-
-                            float x2 = (points[(i + 1) % points.size()].first + posX) * ZOOM - map.posX;
-                            float y2 = (points[(i + 1) % points.size()].second + posY) * ZOOM - map.posY;
-
-                            vita2d_draw_line(x1, y1, x2, y2, RGBA8(255, 0, 0, 255));
-                        }
-                    }
-                }, shape);
-            }
-            //afficher tout des portals
-            for (const std::unique_ptr<Portal>& portal : list_portal) {
-                vita2d_draw_rectangle(
-                    portal->rect.get_position_x() * ZOOM - map.posX,
-                    portal->rect.get_position_y() * ZOOM - map.posY,
-                    portal->rect.get_width() * ZOOM,
-                    portal->rect.get_height() * ZOOM,
-                    RGBA8(0, 255, 0, 255)
-                );
-            }
-
-            
-            vita2d_draw_line(SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT, RGBA8(255, 0, 0, 255));
-            vita2d_draw_line(0, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT / 2, RGBA8(255, 0, 0, 255));
-            Console::show();
+            show_debug_info(map, pad, previousPad);
         }
 
         vita2d_end_drawing();
@@ -178,9 +95,12 @@ int main() {
     return 0;
 }
 
-void update(Player &player) {
+void update(Player &player, Map &map){
     player.update();
-    Map::update();
+    if (player.is_playing_cutsense()) {
+        player.update_cutscene(1.0f / 60.0f, map);
+    }
+    map.update(player);
     for(Tree &tree : *list_tree){
         tree.update();
     }
@@ -249,11 +169,12 @@ void draw(Player &player, Map &map)
             tree.draw();
         }
     }
+
+    map.draw_transition();
 }
 
-
-
 void move(SceCtrlData &pad, Player &player, Map &map) {
+    if(player.is_playing_cutsense())return;
     bool player_on_water = false;
     //verifier si le joueur est sur l'eau
     if(map.player_on_water(player)){
@@ -410,6 +331,7 @@ void move(SceCtrlData &pad, Player &player, Map &map) {
     if(!player_on_water){
         player.change((maxX == 0 && maxY == 0) ? IDLE : WALK);
     }
+    player.last_direction = {maxX, maxY};
 
     Console::log("nb portals : " + std::to_string(list_portal.size()));
     // verifier les portails
@@ -465,10 +387,100 @@ void move(SceCtrlData &pad, Player &player, Map &map) {
 
     }    
     if(new_map_name != "null"){
-        map.change_map(new_map_name, player);
+        map.init_change_map(new_map_name, player);
     }
     if(player_changed_layer){
         map.combine_collide_rect(player);
     }
     Console::log("Player layer : " + std::to_string(player.get_layer()));
+}
+
+void show_debug_info(const Map& map, const SceCtrlData& pad, const SceCtrlData& previousPad) {
+    Console::log("Nombre d'arbres : " + std::to_string(list_tree->size()));
+
+    if ((pad.buttons & SCE_CTRL_TRIANGLE) && !(previousPad.buttons & SCE_CTRL_TRIANGLE)) {
+        Console::mode = Console::mode == 0 ? 1 : 0;
+    }
+    for (const auto& [layerIndex, shapes] : list_collide_rect_by_layer) {
+        for (const auto& shape : shapes) {
+            std::visit([&](const auto& obj) {
+                using T = std::decay_t<decltype(obj)>;
+
+                if constexpr (std::is_same_v<T, Rect>) {
+                    vita2d_draw_rectangle(
+                        obj.get_position_x() * ZOOM - map.posX,
+                        obj.get_position_y() * ZOOM - map.posY,
+                        obj.get_width() * ZOOM,
+                        obj.get_height() * ZOOM,
+                        RGBA8(255, 0, 0, 255)
+                    );
+                } else if constexpr (std::is_same_v<T, Polygon>) {
+                    const auto& points = obj.get_points();
+                    if (points.size() < 3) return;
+
+                    const int posX = obj.get_position_x();
+                    const int posY = obj.get_position_y();
+
+                    for (size_t i = 0; i < points.size(); ++i) {
+                        float x1 = (points[i].first + posX) * ZOOM - map.posX;
+                        float y1 = (points[i].second + posY) * ZOOM - map.posY;
+
+                        float x2 = (points[(i + 1) % points.size()].first + posX) * ZOOM - map.posX;
+                        float y2 = (points[(i + 1) % points.size()].second + posY) * ZOOM - map.posY;
+
+                        vita2d_draw_line(x1, y1, x2, y2, RGBA8(255, 0, 0, 255));
+                    }
+                }
+            }, shape);
+        }
+    }
+
+
+    // Afficher les formes globales (en dehors des couches)
+    for (const auto& shape : list_collide_rect_global) {
+        std::visit([&](const auto& obj) {
+            using T = std::decay_t<decltype(obj)>;
+
+            if constexpr (std::is_same_v<T, Rect>) {
+                vita2d_draw_rectangle(
+                    obj.get_position_x() * ZOOM - map.posX,
+                    obj.get_position_y() * ZOOM - map.posY,
+                    obj.get_width() * ZOOM,
+                    obj.get_height() * ZOOM,
+                    RGBA8(255, 0, 0, 255)
+                );
+            } else if constexpr (std::is_same_v<T, Polygon>) {
+                const auto& points = obj.get_points();
+                if (points.size() < 3) return;
+
+                const int posX = obj.get_position_x();
+                const int posY = obj.get_position_y();
+
+                for (size_t i = 0; i < points.size(); ++i) {
+                    float x1 = (points[i].first + posX) * ZOOM - map.posX;
+                    float y1 = (points[i].second + posY) * ZOOM - map.posY;
+
+                    float x2 = (points[(i + 1) % points.size()].first + posX) * ZOOM - map.posX;
+                    float y2 = (points[(i + 1) % points.size()].second + posY) * ZOOM - map.posY;
+
+                    vita2d_draw_line(x1, y1, x2, y2, RGBA8(255, 0, 0, 255));
+                }
+            }
+        }, shape);
+    }
+    //afficher tout des portals
+    for (const std::unique_ptr<Portal>& portal : list_portal) {
+        vita2d_draw_rectangle(
+            portal->rect.get_position_x() * ZOOM - map.posX,
+            portal->rect.get_position_y() * ZOOM - map.posY,
+            portal->rect.get_width() * ZOOM,
+            portal->rect.get_height() * ZOOM,
+            RGBA8(0, 255, 0, 255)
+        );
+    }
+
+    
+    vita2d_draw_line(SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT, RGBA8(255, 0, 0, 255));
+    vita2d_draw_line(0, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT / 2, RGBA8(255, 0, 0, 255));
+    Console::show();
 }

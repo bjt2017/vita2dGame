@@ -2,9 +2,6 @@
 
 std::unordered_set<int> tree_ids = {2626, 2627, 2690, 2691, 2498, 2499, 2562, 2563,2690,2691};
 
-float Map::water_timer = 0.0f;
-int Map::water_frame = 0;
-
 Map::Map() {
     tileset = vita2d_load_PNG_buffer(&_binary_assets_assets_png_start);
     if (!tileset) {
@@ -40,6 +37,11 @@ void Map::init(Player &player){
     Rect::set_map_pos(posX, posY, ZOOM);
 }
 
+void Map::init_change_map(const std::string& map_name, Player &player) {
+    this->transition = Transition{TransitionState::FadeOut};
+    this->new_map_name = map_name;
+    player.change(PlayerState::IDLE);
+}
 void Map::change_map(const std::string& map_name, Player& player) {
     try {
         current_map = &this->get_tile_group({map_name}, true);
@@ -49,15 +51,11 @@ void Map::change_map(const std::string& map_name, Player& player) {
         return;
     }
 
-    
-
     // Reset des listes
     list_collide_rect.clear();
     list_collide_rect_global.clear();
     list_collide_rect_by_layer.clear();
     list_portal.clear();
-
-    
 
     // Chargement des couches de collision
     try {
@@ -170,6 +168,12 @@ void Map::change_map(const std::string& map_name, Player& player) {
     }
 }
 
+void Map::draw_transition() {
+    if (transition.state == TransitionState::FadeOut || transition.state == TransitionState::FadeIn) {
+        vita2d_draw_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, RGBA8(0, 0, 0, static_cast<unsigned char>(transition.alpha)));
+    }
+}
+
 void Map::combine_collide_rect(const Player& player) {
     // Vider la liste des collisions
     list_collide_rect.clear();
@@ -202,7 +206,6 @@ void Map::combine_collide_rect(const Player& player) {
     }
 }
 
-
 Map::~Map() {
     vita2d_free_texture(tileset);
 }
@@ -219,11 +222,30 @@ void Map::move(int x, int y) {
     lastTileY = std::min(mapHeight - 1, static_cast<int>((posY + SCREEN_HEIGHT) / (tileHeight * ZOOM)));
 }
 
-void Map::update() {
-    Map::water_timer += 0.1f;
-    if (Map::water_timer >= 1.0f) {
-        Map::water_timer = 0;
-        Map::water_frame = (water_frame + 1) % 5; 
+void Map::update(Player &player) {
+    this->water_timer += 0.1f;
+    if (this->water_timer >= 1.0f) {
+        this->water_timer = 0;
+        this->water_frame = (water_frame + 1) % 5; 
+    }
+
+    if (transition.state == TransitionState::FadeOut) {
+        transition.alpha += transition.speed;
+        if (transition.alpha >= 255.0f) {
+            transition.alpha = 255.0f;
+            transition.state = TransitionState::Loading;
+            change_map(player);
+            transition.state = TransitionState::FadeIn;
+            int distance = 50;
+            int directionY = (player.last_direction.second >= 0) ? 1 : -1;
+            player.play_cutscene({{CutsceneStepType::Move, {0, directionY * distance}, 0.4f}});
+        }
+    } else if (transition.state == TransitionState::FadeIn) {
+        transition.alpha -= transition.speed;
+        if (transition.alpha <= 0.0f) {
+            transition.alpha = 0.0f;
+            transition.state = TransitionState::None;
+        }
     }
 }
 
@@ -294,7 +316,7 @@ tmx::TileLayer& Map::get_tile_layer(const std::string& layerName, const std::vec
     throw std::runtime_error("get_tile_layer: tile layer not found: " + layerName);
 }
 
-    std::unordered_set<int> Map::get_tiles_under_player(const Player& player, const std::string& layerName, const std::vector<std::string>& path) const {
+std::unordered_set<int> Map::get_tiles_under_player(const Player& player, const std::string& layerName, const std::vector<std::string>& path) const {
     std::unordered_set<int> tile_ids;
 
     try {
@@ -355,8 +377,6 @@ bool Map::player_on_water(const Player& player) const {
     return true;
 }
 
-
-
 void Map::draw_layer(const tmx::TileLayer& layer, LayerType type){
     const auto& tiles = layer.getTiles();
     for (int y = firstTileY; y <= lastTileY; ++y) {
@@ -366,7 +386,6 @@ void Map::draw_layer(const tmx::TileLayer& layer, LayerType type){
         }
     }
 }
-
 
 void Map::draw_tile(tmx::TileLayer::Tile tile, int x, int y, LayerType type) {
     if (tile.ID != 0) {
@@ -444,9 +463,9 @@ void Map::draw_tile(tmx::TileLayer::Tile tile, int x, int y, LayerType type) {
 
 void Map::create_house(const tmx::Object& object) {
     House house(object);
-    const Rect& rect = house.rect;
-    auto [left, right, top, bottom] = rect.get_position();
-    int width = rect.get_width();
+    // const Rect& rect = house.rect;
+    // auto [left, right, top, bottom] = rect.get_position();
+    // int width = rect.get_width();
 
     //ajouter a la liste des portails
     list_portal.push_back(std::make_unique<House>(house));

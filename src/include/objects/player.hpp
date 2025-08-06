@@ -2,6 +2,8 @@
 #include "../objects.hpp"
 #include "../assets.h"
 #include "console.hpp"
+#include <functional>
+#include <cmath>
 
 #define COLLIDE_ZONE_Y 11
 #define player_center_x (static_cast<int>(SCREEN_WIDTH / 2 - (PLAYER_REEL_WIDTH * ZOOM) / 2))
@@ -19,6 +21,8 @@
 struct Portal;
 struct House;
 
+class Map;
+
 enum Direction{
     LEFT,RIGHT,DOWN,UP
 };
@@ -28,6 +32,33 @@ enum PlayerState{
     WALK,
     AXE,
     SWIMMING,
+};
+
+enum class CutsceneStepType {
+    Move,       
+    Wait,      
+    Dialogue,   
+    Fade,       
+    Callback    
+};
+
+struct CutsceneStep {
+    CutsceneStepType type;
+    std::pair<int, int> direction;
+    float duration = 0.0f;
+    float speed = 0.0f;
+    float waitTime = 0.0f;
+    std::string dialogueText;
+    std::function<void()> callback;
+};
+
+struct CutscenePlayer {
+    bool active = false;
+    std::vector<CutsceneStep> steps;
+    size_t currentStep = 0;
+    float timer = 0.0f;  
+    std::pair<int, int> moveDir = {0, 0};
+    std::pair<float, float> alreadyMoved = {0, 0};
 };
 
 struct PlayerStateData : public StateObject<PlayerState>{
@@ -50,7 +81,10 @@ class Player : public Object<PlayerStateData, PlayerState> {
         House *interaction_house = nullptr;
         Portal *interaction_portal = nullptr;
         Position portal_entry_direction = Position::None;
+        CutscenePlayer cutscene;
+
     public :
+        std::pair<int,int> last_direction = {0,0};
         bool debug=false;
         Player(int x, int y);
         ~Player();
@@ -60,6 +94,15 @@ class Player : public Object<PlayerStateData, PlayerState> {
         void interaction() override;
         void change(PlayerState state);
         void move(int x, int y);
+
+        void play_cutscene(const std::vector<CutsceneStep>& steps) {
+            cutscene.active = true;
+            cutscene.steps = steps;
+            cutscene.currentStep = 0;
+            cutscene.timer = 0.0f;
+        }
+
+        void update_cutscene(float deltaTime,Map& map);
 
         Rect get_rect_collision() const override;
 
@@ -103,5 +146,8 @@ class Player : public Object<PlayerStateData, PlayerState> {
         }
         void set_interaction_house(House* house) {
             interaction_house = house;
+        }
+        bool is_playing_cutsense(){
+            return this->cutscene.active;
         }
 };

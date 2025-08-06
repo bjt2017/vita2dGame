@@ -1,4 +1,5 @@
-#include "include/objects/player.hpp"   
+#include "include/objects/player.hpp" 
+#include "include/map.hpp"  
 
 Player::Player(int x, int y) : Object(Rect(x, y, PLAYER_REEL_WIDTH*Rect::get_zoom(), PLAYER_REEL_HEIGHT*Rect::get_zoom(),false), ObjectType::PLAYER, 1), speed(3) {
     direction = {RIGHT, DOWN};
@@ -141,3 +142,96 @@ Rect Player::get_rect_collision() const{
     return Rect(get_position_x(), get_position_y() + (PLAYER_REEL_HEIGHT - COLLIDE_ZONE_Y)*Rect::get_zoom(), PLAYER_REEL_WIDTH*Rect::get_zoom(), COLLIDE_ZONE_Y*Rect::get_zoom(),false);
 }
 
+void Player::update_cutscene(float deltaTime, Map& map) {
+    if (!cutscene.active || cutscene.currentStep >= cutscene.steps.size())
+        return;
+
+    CutsceneStep& step = cutscene.steps[cutscene.currentStep];
+    cutscene.timer += deltaTime;
+
+    switch (step.type) {
+        case CutsceneStepType::Move: {
+            if (cutscene.timer == deltaTime) {
+                cutscene.alreadyMoved = {0.0f, 0.0f};
+            }
+
+            float t = cutscene.timer / step.duration;
+            if (t > 1.0f) t = 1.0f;
+
+            float expectedTotalX = step.direction.first * t;
+            float expectedTotalY = step.direction.second * t;
+
+            float deltaX = expectedTotalX - cutscene.alreadyMoved.first;
+            float deltaY = expectedTotalY - cutscene.alreadyMoved.second;
+
+            int moveX = 0;
+            int moveY = 0;
+
+            // Seulement bouger si la fraction accumulée dépasse ±1.0
+            if (std::abs(deltaX) >= 1.0f) {
+                moveX = static_cast<int>(std::round(deltaX));
+                cutscene.alreadyMoved.first += moveX;
+            }
+
+            if (std::abs(deltaY) >= 1.0f) {
+                moveY = static_cast<int>(std::round(deltaY));
+                cutscene.alreadyMoved.second += moveY;
+            }
+
+            if (moveX != 0 || moveY != 0) {
+                // move(moveX, moveY);
+                map.move(moveX, moveY);
+            }
+
+            change(PlayerState::WALK);
+
+            if (cutscene.timer >= step.duration) {
+                // Fin du mouvement, on s'assure d'arriver exactement à la bonne position
+                int targetX = get_position_x() + (step.direction.first - static_cast<int>(cutscene.alreadyMoved.first));
+                int targetY = get_position_y() + (step.direction.second - static_cast<int>(cutscene.alreadyMoved.second));
+                move(targetX - get_position_x(), targetY - get_position_y());
+
+                change(PlayerState::IDLE);
+                cutscene.timer = 0.0f;
+                cutscene.currentStep++;
+            }
+
+            break;
+        }
+
+        case CutsceneStepType::Wait: {
+            change(PlayerState::IDLE);
+            if (cutscene.timer >= step.waitTime) {
+                cutscene.timer = 0.0f;
+                cutscene.currentStep++;
+            }
+            break;
+        }
+
+        case CutsceneStepType::Dialogue: {
+            // Tu peux intégrer ton système de dialogue ici           
+            break;
+        }
+
+        case CutsceneStepType::Fade: {
+            // à gérer dans ton système de transition (ex. fade-in/out)
+            if (cutscene.timer >= step.duration) {
+                cutscene.timer = 0.0f;
+                cutscene.currentStep++;
+            }
+            break;
+        }
+
+        case CutsceneStepType::Callback: {
+            if (step.callback) step.callback();
+            cutscene.timer = 0.0f;
+            cutscene.currentStep++;
+            break;
+        }
+    }
+
+    if (cutscene.currentStep >= cutscene.steps.size()) {
+        cutscene.active = false;
+        change(PlayerState::IDLE);
+    }
+}
