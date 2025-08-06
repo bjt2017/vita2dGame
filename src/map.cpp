@@ -424,23 +424,23 @@ void Map::draw_tile(tmx::TileLayer::Tile tile, int x, int y, LayerType type) {
     
 }
 
-std::vector<std::pair<int,int>> Map::get_adjacent_tiles(tmx::TileLayer layer, std::pair<int,int> pos){
-    const auto& tiles = layer.getTiles();
-    std::vector<std::pair<int,int>> result;
-    //droite
-    std::vector<std::pair<int,int>> to_check = {
-        {-1,0},
-        {1,0},
-        {0,1},
-        {1,0}
-    };
+// std::vector<std::pair<int,int>> Map::get_adjacent_tiles(tmx::TileLayer layer, std::pair<int,int> pos){
+//     const auto& tiles = layer.getTiles();
+//     std::vector<std::pair<int,int>> result;
+//     //droite
+//     std::vector<std::pair<int,int>> to_check = {
+//         {-1,0},
+//         {1,0},
+//         {0,1},
+//         {1,0}
+//     };
 
-    for(std::pair<int,int> pos_to_check : to_check){
-        if(tiles[(pos_to_check.first + pos.first) * mapWidth + pos_to_check.second+pos.second].ID != 0){
-            result.emplace(get_adjacent_tiles())
-        }
-    }
-}
+//     for(std::pair<int,int> pos_to_check : to_check){
+//         if(tiles[(pos_to_check.first + pos.first) * mapWidth + pos_to_check.second+pos.second].ID != 0){
+//             result.emplace(get_adjacent_tiles())
+//         }
+//     }
+// }
 
 void Map::create_house(const tmx::Object& object) {
     House house(object);
