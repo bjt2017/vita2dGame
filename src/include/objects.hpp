@@ -56,6 +56,14 @@ public:
     int get_height() const { return rect.get_height(); }
     int get_frame() const { return frame; }
     int get_layer() const { return layer; }
+    void update_layer(int modifier) {
+        if(modifier == 0) return;
+        if(modifier > 0) {
+            if(layer < 10) layer++;
+        } else {
+            if(layer > 0) layer--;
+        }
+    }
 
     Rect get_rect() const { return rect; }
 

@@ -31,9 +31,15 @@ void Player::init_all_states(){
     axe.texture_hair = vita2d_load_PNG_buffer(&_binary_assets_Characters_Axe_bowlhair_png_start);
     axe.texture_tools = vita2d_load_PNG_buffer(&_binary_assets_Characters_Axe_tools_png_start);
 
+    PlayerStateData swimming(PlayerState::SWIMMING, 12, 0.08f);
+    swimming.texture_base = vita2d_load_PNG_buffer(&_binary_assets_Characters_Swimming_base_png_start);
+    swimming.texture_hair = vita2d_load_PNG_buffer(&_binary_assets_Characters_Swimming_bowlhair_png_start);
+    swimming.texture_tools = vita2d_load_PNG_buffer(&_binary_assets_Characters_Swimming_tools_png_start);
+
     all_states.push_back(idle);
     all_states.push_back(walk);
     all_states.push_back(axe);
+    all_states.push_back(swimming);
 }
 
 void Player::draw(){
@@ -82,13 +88,15 @@ void Player::draw(){
     }
 }
 
+
+
 void Player::update(){
     if(current_state.nb_frame==0) return;
     time+=1.0f / 60.0f;
     if(time>current_state.frame_duration){
         time=0;
         frame++;
-        if(frame==current_state.nb_frame){
+        if(frame>=current_state.nb_frame){
             if(current_state.blocking){
                 if(current_state.state==AXE){
                     change(IDLE);
@@ -125,7 +133,7 @@ void Player::move(int x, int y) {
 
 void Player::change(PlayerState state){
     if(current_state.blocking && frame!=current_state.nb_frame) return;
-    if(all_states[state].blocking) frame=0;
+    if(all_states[state].blocking || current_state.state != state) frame=0;
     current_state = all_states[state];
 }
 

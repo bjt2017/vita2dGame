@@ -14,7 +14,7 @@ std::string Utils::split(std::string str, char delimiter, int index) {
 }
 
 Tree* Utils::find_tree(int x, int y) {
-    for (Tree& tree : list_tree) {         
+    for (Tree& tree : *list_tree) {         
         if (x >= tree.get_position_x() && x < (tree.get_position_x() + tree.get_width()) && y >= tree.get_position_y() && y < (tree.get_position_y() + tree.get_height())) {
             return &tree;  
         }
@@ -22,28 +22,6 @@ Tree* Utils::find_tree(int x, int y) {
     return nullptr;  
 }
 
-
-//unused
-void Utils::update_list() {
-
-    //list_collide_rect_on_screen.clear();
-    list_tree_on_screen.clear();
-
-    list_collide_rect_on_screen.reserve(list_collide_rect.size());
-    list_tree_on_screen.reserve(list_tree.size());
-
-    // for (auto& object : list_collide_rect) {
-    //     if (object.on_screen()) {
-    //         list_collide_rect_on_screen.push_back(&object);  
-    //     }
-    // }
-
-    for (auto& tree : list_tree) {
-        if (tree.on_screen()) {
-            list_tree_on_screen.push_back(&tree);  
-        }
-    }
-}
 
 
 

@@ -6,6 +6,9 @@
 
 class Polygon;
 
+enum class Position{ None, Top, Bottom, Left, Right };
+
+
 class Rect {
 protected:
     static int map_pos_x,map_pos_y;
@@ -27,6 +30,49 @@ public:
 
     std::pair<int, int> collision(const Polygon& other) const;
     std::pair<int, int> collision(const Polygon& other, int dx, int dy) const;
+
+    bool intersects(const Rect& other) const {
+        auto [left, right, top, bottom] = get_position();
+        auto [other_left, other_right, other_top, other_bottom] = other.get_position();
+        return !(right < other_left || left > other_right || bottom < other_top || top > other_bottom);
+    }
+
+    std::pair<Position,Position> get_position_relative(const Rect& other) const {
+        auto [l, r, t, b]       = this->get_position();
+        auto [ol, or_, ot, ob] = other.get_position();
+
+        // Calcule le centre vertical et horizontal
+        int centerY = (t + b) / 2;
+        int centerX = (l + r) / 2;
+        int otherCenterY = (ot + ob) / 2;
+        int otherCenterX = (ol + or_) / 2;
+
+        // Vertical : si intersect → distance aux bords comme avant
+        Position pos_y;
+        if (this->intersects(other)) {
+            int dTop    = (b >= ot) ? (b - ot) : (ot - b);
+            int dBottom = (t >= ob) ? (t - ob) : (ob - t);
+            pos_y = (dTop <= dBottom) ? Position::Top : Position::Bottom;
+        } else {
+            // en-dehors → comparer les centres
+            pos_y = (centerY < otherCenterY) ? Position::Top : Position::Bottom;
+        }
+
+        // Horizontal : même logique
+        Position pos_x;
+        if (this->intersects(other)) {
+            int dLeft  = (l >= ol)  ? (l - ol)  : (ol  - l);
+            int dRight = (r >= or_) ? (r - or_) : (or_ - r);
+            pos_x = (dLeft <= dRight) ? Position::Left : Position::Right;
+        } else {
+            pos_x = (centerX < otherCenterX) ? Position::Left : Position::Right;
+        }
+
+        return { pos_y, pos_x };
+    }
+
+
+
 
     bool on_screen() const {
         auto [left, right, top, bottom] = get_position();

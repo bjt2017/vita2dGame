@@ -11,11 +11,13 @@ void update(Player &player);
 
 float ZOOM = 3.0f;
 
-std::vector<Shape> list_collide_rect = {}; 
-std::vector<Tree> list_tree = {};  
+std::unordered_map<int, std::vector<Shape>> list_collide_rect_by_layer = {};
+std::vector<Shape> list_collide_rect_global = {};
+std::vector<Shape*> list_collide_rect = {};
 
-std::vector<Rect*> list_collide_rect_on_screen = {}; 
-std::vector<Tree*> list_tree_on_screen = {};  
+std::vector<std::unique_ptr<Portal>> list_portal;
+std::unordered_map<std::string, std::vector<Tree>> list_tree_by_map = {};
+std::vector<Tree>* list_tree = nullptr;
 
 int main() {
 
@@ -70,24 +72,57 @@ int main() {
         vita2d_clear_screen();
 
         //update player position and animation
-        update(player);
         move(pad, player, map);
-        Utils::update_list();
+        update(player);
         draw(player, map);
 
         if (player.debug) {
-            Console::log("Nombre d'arbres : " + std::to_string(list_tree.size()));
-            Console::log("Nombre d'arbres sur l'écran : " + std::to_string(list_tree_on_screen.size()));
+            Console::log("Nombre d'arbres : " + std::to_string(list_tree->size()));
 
             if ((pad.buttons & SCE_CTRL_TRIANGLE) && !(previousPad.buttons & SCE_CTRL_TRIANGLE)) {
                 Console::mode = Console::mode == 0 ? 1 : 0;
             }
-            for (const auto& shape : list_collide_rect) {
+            for (const auto& [layerIndex, shapes] : list_collide_rect_by_layer) {
+                for (const auto& shape : shapes) {
+                    std::visit([&](const auto& obj) {
+                        using T = std::decay_t<decltype(obj)>;
+
+                        if constexpr (std::is_same_v<T, Rect>) {
+                            vita2d_draw_rectangle(
+                                obj.get_position_x() * ZOOM - map.posX,
+                                obj.get_position_y() * ZOOM - map.posY,
+                                obj.get_width() * ZOOM,
+                                obj.get_height() * ZOOM,
+                                RGBA8(255, 0, 0, 255)
+                            );
+                        } else if constexpr (std::is_same_v<T, Polygon>) {
+                            const auto& points = obj.get_points();
+                            if (points.size() < 3) return;
+
+                            const int posX = obj.get_position_x();
+                            const int posY = obj.get_position_y();
+
+                            for (size_t i = 0; i < points.size(); ++i) {
+                                float x1 = (points[i].first + posX) * ZOOM - map.posX;
+                                float y1 = (points[i].second + posY) * ZOOM - map.posY;
+
+                                float x2 = (points[(i + 1) % points.size()].first + posX) * ZOOM - map.posX;
+                                float y2 = (points[(i + 1) % points.size()].second + posY) * ZOOM - map.posY;
+
+                                vita2d_draw_line(x1, y1, x2, y2, RGBA8(255, 0, 0, 255));
+                            }
+                        }
+                    }, shape);
+                }
+            }
+
+
+            // Afficher les formes globales (en dehors des couches)
+            for (const auto& shape : list_collide_rect_global) {
                 std::visit([&](const auto& obj) {
                     using T = std::decay_t<decltype(obj)>;
-                
+
                     if constexpr (std::is_same_v<T, Rect>) {
-                        // Dessin d'un rectangle
                         vita2d_draw_rectangle(
                             obj.get_position_x() * ZOOM - map.posX,
                             obj.get_position_y() * ZOOM - map.posY,
@@ -98,22 +133,33 @@ int main() {
                     } else if constexpr (std::is_same_v<T, Polygon>) {
                         const auto& points = obj.get_points();
                         if (points.size() < 3) return;
-                
+
                         const int posX = obj.get_position_x();
                         const int posY = obj.get_position_y();
-                
+
                         for (size_t i = 0; i < points.size(); ++i) {
                             float x1 = (points[i].first + posX) * ZOOM - map.posX;
                             float y1 = (points[i].second + posY) * ZOOM - map.posY;
-                
+
                             float x2 = (points[(i + 1) % points.size()].first + posX) * ZOOM - map.posX;
                             float y2 = (points[(i + 1) % points.size()].second + posY) * ZOOM - map.posY;
-                
+
                             vita2d_draw_line(x1, y1, x2, y2, RGBA8(255, 0, 0, 255));
                         }
                     }
                 }, shape);
             }
+            //afficher tout des portals
+            for (const std::unique_ptr<Portal>& portal : list_portal) {
+                vita2d_draw_rectangle(
+                    portal->rect.get_position_x() * ZOOM - map.posX,
+                    portal->rect.get_position_y() * ZOOM - map.posY,
+                    portal->rect.get_width() * ZOOM,
+                    portal->rect.get_height() * ZOOM,
+                    RGBA8(0, 255, 0, 255)
+                );
+            }
+
             
             vita2d_draw_line(SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT, RGBA8(255, 0, 0, 255));
             vita2d_draw_line(0, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT / 2, RGBA8(255, 0, 0, 255));
@@ -135,20 +181,34 @@ int main() {
 void update(Player &player) {
     player.update();
     Map::update();
-    for(Tree &tree : list_tree){
+    for(Tree &tree : *list_tree){
         tree.update();
     }
 }
 
 void draw(Player &player, Map &map)
 {
-    const auto& layers = map.map.getLayers();
+    const auto& layers = map.getCurrentMap().getLayers();
     bool is_player_draw = false;
+
+    //afficher toutes les layers d'eau 
+    try {
+        const tmx::LayerGroup& water_layers = map.get_tile_group({"water"}, false);
+        
+        for (const auto& layerPtr : water_layers.getLayers()) {
+            if (layerPtr->getType() == tmx::Layer::Type::Tile) {
+                const tmx::TileLayer& tile_layer = layerPtr->getLayerAs<tmx::TileLayer>();
+                map.draw_layer(tile_layer, LayerType::WATER);
+            }
+        }
+    } catch (const std::exception& e) {
+        Console::warning("Impossible de récupérer le groupe 'water' : " + std::string(e.what()));
+    }
 
     for (const auto& layer : layers) {
         if (layer->getType() == tmx::Layer::Type::Tile) {
             const tmx::TileLayer& tile_layer = static_cast<const tmx::TileLayer&>(*layer);
-
+            bool draw_layer = true;
             std::string name = layer->getName();
             
             std::string layerStr = Utils::split(name, '_', 1);
@@ -159,25 +219,32 @@ void draw(Player &player, Map &map)
 
             std::string layer_name = Utils::split(name, '_', 0);
 
+            std::string layer_type_str = Utils::split(name, '_', 2);
+
             LayerType layer_type = LayerType::TILE;
             if (layer_name == "arbre") {
                 layer_type = LayerType::TREE;
             } else if (layer_name == "water") {
                 layer_type = LayerType::WATER;
+            } else if(layer_name == "house" && layer_type_str == "over"){
+                draw_layer = player.get_interaction_house() == nullptr;
+                if(!draw_layer) {
+                    //afficher le nombre de tuiles du root de la house
+                    Console::log("House interaction nb roof tiles: " + player.get_interaction_house()->roof_tiles_pos.size());
+                }
             }
 
-            bool draw_player = !is_player_draw && actual_layer == player.get_layer() && Utils::split(name, '_', 2) == "over";
+            bool draw_player = !is_player_draw && Utils::split(name, '_', 0)!="tiles" && layer_type_str != "alwaysunder" && (actual_layer == player.get_layer()+1 || layer_type_str == "over");
             
             if (draw_player) {
                 player.draw();
                 is_player_draw = true;
             }
-            
-            map.draw_layer(tile_layer,layer_type);
+            if(draw_layer) map.draw_layer(tile_layer,layer_type);
         }
     }
 
-    for(Tree &tree : list_tree){
+    for(Tree &tree : *list_tree){
         if(tree.on_screen()){
             tree.draw();
         }
@@ -187,11 +254,25 @@ void draw(Player &player, Map &map)
 
 
 void move(SceCtrlData &pad, Player &player, Map &map) {
+    bool player_on_water = false;
+    //verifier si le joueur est sur l'eau
+    if(map.player_on_water(player)){
+        player_on_water = true;
+        if(player.get_current_state().state != SWIMMING){
+            player.change(SWIMMING);
+            player.set_can_interact(false);
+        }
+    } else{
+        player.set_can_interact(true);
+    }
     int x = 0, y = 0;
 
-    if(pad.buttons & SCE_CTRL_SQUARE){
-        player.change(AXE);
+    if(player.get_can_interact()){
+        if(pad.buttons & SCE_CTRL_SQUARE){
+            player.change(AXE);
+        }
     }
+    
     if(!player.get_current_state().blocking){
         if(pad.buttons & SCE_CTRL_UP){
             y = floor(-PLAYER_SPEED * ZOOM);
@@ -223,10 +304,6 @@ void move(SceCtrlData &pad, Player &player, Map &map) {
         }
     }
 
-    if(x==0 && y==0){
-        player.change(IDLE);
-    }
-
     bool map_can_move_left = map.posX + x <= (map.mapWidth * map.tileWidth * ZOOM) - SCREEN_WIDTH;
     bool map_can_move_right = map.posX + x >= 0;
 
@@ -236,12 +313,13 @@ void move(SceCtrlData &pad, Player &player, Map &map) {
     int maxX = x;
     int maxY = y;
 
-    for (const auto& shape : list_collide_rect) {
+    // Traitement des collisions
+    for (const Shape* shape : list_collide_rect) {
         std::visit([&](const auto& obj) {
             using T = std::decay_t<decltype(obj)>;
             int collideX = 0;
             int collideY = 0;
-    
+
             if constexpr (std::is_same_v<T, Rect>) {
                 auto collisionResult = player.get_rect_collision().collision(obj, x, y);
                 collideX = collisionResult.first;
@@ -251,15 +329,24 @@ void move(SceCtrlData &pad, Player &player, Map &map) {
                 collideX = collisionResult.first;
                 collideY = collisionResult.second;
             }
-    
+
             maxX = (x > 0) ? std::min(maxX, collideX) : std::max(maxX, collideX);
             maxY = (y > 0) ? std::min(maxY, collideY) : std::max(maxY, collideY);
-        }, shape);
+        }, *shape);  // <- ici on déréférence le pointeur
     }
-    
 
-    for (Tree &tree : list_tree){
-        if(tree.on_screen()){
+
+    //afficher les differentes map qui existent dans list_tree_by_map
+    std::string list_tree_by_map_str = "List of maps with trees: ";
+    for (const auto& pair : list_tree_by_map) {
+        list_tree_by_map_str += pair.first+ ", nb :" + std::to_string(pair.second.size()) + ", ";
+    }
+    Console::log(list_tree_by_map_str);
+    Console::log("current map" + map.current_map_name);
+
+
+    for (Tree &tree : *list_tree){
+        if(tree.get_layer()==player.get_layer() && tree.on_screen()){
             const bool can_interact = tree.can_interact(player.get_rect(), player.get_direction_x() == RIGHT);
             if (can_interact) {
                 //console.log("current_state : " + player.current_state.state + " frame : " + std::to_string(player.frame) + " action_frame : " + std::to_string(player.current_state.action_frame));
@@ -320,7 +407,68 @@ void move(SceCtrlData &pad, Player &player, Map &map) {
         }
         player.move(0, maxY);
     }
+    if(!player_on_water){
+        player.change((maxX == 0 && maxY == 0) ? IDLE : WALK);
+    }
 
-    player.change((maxX == 0 && maxY == 0) ? IDLE : WALK);
-   
+    Console::log("nb portals : " + std::to_string(list_portal.size()));
+    // verifier les portails
+    // si le joueur etait sur un portail, on verifie si il est plus dedans
+    bool player_changed_layer = false;
+    std::string new_map_name = "null";
+    Portal *interaction_portal = player.get_interaction_portal();
+    if(interaction_portal != nullptr){
+        Console::log("Player is in a portal and he enters in the portal by " + std::to_string(static_cast<int>(player.get_portal_entry_direction())));
+        if(!player.get_rect_collision().intersects(player.get_interaction_portal()->rect)){
+            // le joueur n'est plus dans le portail
+            if(player.get_portal_entry_direction() == Position::Top && player.get_rect_collision().get_position_relative(player.get_interaction_portal()->rect).first == Position::Bottom){
+                //si il est sorti par le bas on decremente la couche sur la quelle le joueur est
+                if(interaction_portal->type == PortalType::LayerChanger){
+                    player.update_layer(-1);
+                    player_changed_layer = true;
+                } else if(interaction_portal->type == PortalType::House){
+                    player.set_interaction_house(nullptr);
+                }
+            } else if(player.get_portal_entry_direction() == Position::Bottom && player.get_rect_collision().get_position_relative(player.get_interaction_portal()->rect).first == Position::Top){
+                if(interaction_portal->type == PortalType::LayerChanger){
+                    player.update_layer(1);
+                    player_changed_layer = true;
+                } else if(interaction_portal->type == PortalType::House){
+                    player.set_interaction_house(dynamic_cast<House*>(interaction_portal));
+                }
+            }
+            player.set_interaction_portal(nullptr);
+            player.set_portal_entry_direction(Position::None);
+        }
+    }else{
+        //si il est dans un portail, on l'ajoute au joueur
+        for (const auto& portalPtr : list_portal) {
+            Portal& portal = *portalPtr;
+
+            if (portal.rect.on_screen() && player.get_rect_collision().intersects(portal.rect)) {
+
+                if (portal.type == PortalType::LayerChanger || portal.type == PortalType::House) {
+                    player.set_interaction_portal(&portal);
+                    player.set_portal_entry_direction(player.get_rect_collision().get_position_relative(portal.rect).first);
+                    break;
+                }
+
+                else if (portal.type == PortalType::MapChanger) {
+                    auto* mapChanger = dynamic_cast<MapChanger*>(&portal);
+                    if (mapChanger) {
+                        new_map_name = mapChanger->value;
+                        break;
+                    }
+                }
+            }
+        }
+
+    }    
+    if(new_map_name != "null"){
+        map.change_map(new_map_name, player);
+    }
+    if(player_changed_layer){
+        map.combine_collide_rect(player);
+    }
+    Console::log("Player layer : " + std::to_string(player.get_layer()));
 }

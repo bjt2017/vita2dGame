@@ -1,11 +1,13 @@
 #include "include/objects/tree.hpp"
 #include <iostream>
 
+vita2d_texture* Tree::leaf = nullptr;
+
 Tree::Tree(int x, int y, int layer) : Object(Rect(x, y, 32, 34), ObjectType::TREE, layer) {
     frame=rand()%4;
     init_all_states();
     change(NORMAL);
-    leaf = vita2d_load_PNG_buffer(&_binary_assets_Tree_leaf_png_start);
+    
 }
 
 void Tree::init_all_states() {
@@ -19,7 +21,7 @@ void Tree::draw() {
     if(leaf_frame==-1)return;
     auto [left, right, top, bottom] = rect.get_position();
     const int zoom = Rect::get_zoom();
-    vita2d_draw_texture_part_scale(leaf, left-zoom*7, top,47*leaf_frame, 0, 47, 32, Rect::get_zoom(), Rect::get_zoom());
+    vita2d_draw_texture_part_scale(leaf, left-zoom*10, top,47*leaf_frame, 0, 47, 32, Rect::get_zoom(), Rect::get_zoom());
 }
 
 int skipLine(int nb){

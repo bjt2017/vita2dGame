@@ -16,6 +16,9 @@
 #define PLAYER_REEL_WIDTH 13
 #define PLAYER_REEL_HEIGHT 18
 
+struct Portal;
+struct House;
+
 enum Direction{
     LEFT,RIGHT,DOWN,UP
 };
@@ -23,7 +26,8 @@ enum Direction{
 enum PlayerState{
     IDLE,
     WALK,
-    AXE
+    AXE,
+    SWIMMING,
 };
 
 struct PlayerStateData : public StateObject<PlayerState>{
@@ -40,8 +44,12 @@ class Player : public Object<PlayerStateData, PlayerState> {
     protected :
         int speed;
         float time=0;
+        bool can_interact = true;
         vita2d_pgf *font;
         std::pair<Direction, Direction> direction;
+        House *interaction_house = nullptr;
+        Portal *interaction_portal = nullptr;
+        Position portal_entry_direction = Position::None;
     public :
         bool debug=false;
         Player(int x, int y);
@@ -71,4 +79,29 @@ class Player : public Object<PlayerStateData, PlayerState> {
 
         void set_direction_x(Direction dir) {direction.first = dir;}
         void set_direction_y(Direction dir) {direction.second = dir;}
+
+        void set_can_interact(bool can) {
+            can_interact = can;
+        }
+        bool get_can_interact() const {
+            return can_interact;
+        }
+        Portal* get_interaction_portal() const {
+            return interaction_portal;
+        }
+        void set_interaction_portal(Portal* portal){
+            interaction_portal = portal;
+        }
+        Position get_portal_entry_direction() const {
+            return portal_entry_direction;
+        }
+        void set_portal_entry_direction(Position direction) {
+            portal_entry_direction = direction;
+        }
+        House* get_interaction_house() const {
+            return interaction_house;
+        }
+        void set_interaction_house(House* house) {
+            interaction_house = house;
+        }
 };

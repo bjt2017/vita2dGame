@@ -24,10 +24,18 @@ class Tree : public Object<TreeStateData, TreeState> {
 
         int leaf_frame = -1;
         float leaf_time = 0;
-        vita2d_texture* leaf;
+        static vita2d_texture* leaf;
     
     public :
         Tree(int x, int y, int layer = 1);
+        static void load_assets(){
+            if (!leaf) {
+                leaf = vita2d_load_PNG_buffer(&_binary_assets_Tree_leaf_png_start);
+                if (!leaf) {
+                    Console::warning("Failed to load tree leaf texture.");
+                };
+            }
+        }
         void init_all_states() override;
         void draw() override;
         void update() override;
