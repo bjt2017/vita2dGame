@@ -15,3 +15,17 @@ extern unsigned char _binary_assets_Characters_Swimming_bowlhair_png_start;
 extern unsigned char _binary_assets_Characters_Swimming_tools_png_start;
 
 extern unsigned char _binary_assets_Tree_leaf_png_start;
+
+extern unsigned char _binary_assets_UI_lt_box_9slice_bc_png_start;
+extern unsigned char _binary_assets_UI_lt_box_9slice_bl_png_start;
+extern unsigned char _binary_assets_UI_lt_box_9slice_br_png_start;
+extern unsigned char _binary_assets_UI_lt_box_9slice_c_png_start;
+extern unsigned char _binary_assets_UI_lt_box_9slice_lc_png_start;
+extern unsigned char _binary_assets_UI_lt_box_9slice_rc_png_start;
+extern unsigned char _binary_assets_UI_lt_box_9slice_tc_png_start;
+extern unsigned char _binary_assets_UI_lt_box_9slice_tl_png_start;
+extern unsigned char _binary_assets_UI_lt_box_9slice_tr_png_start;
+
+extern unsigned char _binary_assets_UI_indicator_png_start;
+
+

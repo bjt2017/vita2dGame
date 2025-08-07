@@ -21,16 +21,22 @@ RUN apt-get update && apt-get install -y \
     ninja-build \
     libpugixml-dev \
     qemu qemu-user-static binfmt-support \
-    pkg-config
+    pkg-config \
+    libfreetype6-dev \
+    libpng-dev \
+    libharfbuzz-dev
 
 # Activer QEMU pour les binaires multi-architecture
 RUN update-binfmts --enable qemu-x86_64
 
-# Cloner et installer VitaSDK
+# Cloner et installer VitaSDK (via vdpm)
 RUN git clone https://github.com/vitasdk/vdpm.git /vdpm && \
     cd /vdpm && \
     ./bootstrap-vitasdk.sh && \
     ./install-all.sh
+
+# Installer les outils Vita FreeType via vdpm
+RUN $VITASDK/bin/vdpm install freetype vita2dlib
 
 # Cloner et configurer tmxlite
 RUN git clone https://github.com/fallahn/tmxlite.git /tmxlite

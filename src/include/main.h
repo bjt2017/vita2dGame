@@ -19,6 +19,7 @@
 #include "objects/player.hpp"
 #include "map.hpp"
 #include "utils.h"
+#include "dialogue.h"
 #include "globals.hpp"
 
 #endif 

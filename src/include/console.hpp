@@ -10,6 +10,7 @@
 
 class Console {
 public:
+    static vita2d_font* font;
     Console() = delete;
     ~Console() = delete;
     static int mode;
@@ -22,7 +23,6 @@ public:
     static void shutdown();
 
 private:
-    static vita2d_pgf* font;
     static std::vector<std::string> logs;
     static std::vector<std::string> warnings;
     static std::vector<std::string> errors;

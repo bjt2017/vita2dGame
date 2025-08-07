@@ -1,6 +1,6 @@
 #include "include/console.hpp"
 
-vita2d_pgf* Console::font = nullptr;
+vita2d_font* Console::font = nullptr;
 std::vector<std::string> Console::logs;
 std::vector<std::string> Console::warnings;
 std::vector<std::string> Console::errors;
@@ -8,7 +8,7 @@ bool Console::ready = false;
 int Console::mode = 0;
 
 void Console::init() {
-    font = vita2d_load_default_pgf();
+    font = vita2d_load_font_file("app0:/assets/Pixuf.ttf");
     ready = true;
     mode = 0;
 }
@@ -33,19 +33,19 @@ void Console::show() {
     if(mode==0){
         vita2d_draw_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, RGBA8(0, 0, 0, 200));
         for(auto& error : errors) {
-            vita2d_pgf_draw_text(font, x, y, RGBA8(255, 0, 0, 255), 1.0f, error.c_str());
+            vita2d_font_draw_text(font, x, y, RGBA8(255, 0, 0, 255), 30.0f, error.c_str());
             y += 20;
         }
         for (auto& log : logs) {
-            vita2d_pgf_draw_text(font, x, y, RGBA8(255, 255, 255, 255), 1.0f, log.c_str());
+            vita2d_font_draw_text(font, x, y, RGBA8(255, 255, 255, 255), 30.0f, log.c_str());
             y += 20;
         }
         for(auto& warning : warnings) {
-            vita2d_pgf_draw_text(font, x, y, RGBA8(255, 165, 0, 255), 1.0f, warning.c_str());
+            vita2d_font_draw_text(font, x, y, RGBA8(255, 165, 0, 255), 30.0f, warning.c_str());
             y += 20;
         } 
     }else if(mode==1){
-        vita2d_pgf_draw_text(font, 20, 20, RGBA8(255, 255, 255, 255), 1.0f, "Show collision mode");
+        vita2d_font_draw_text(font, 20, 20, RGBA8(255, 255, 255, 255), 30.0f, "Show collision mode");
     }
 }
 
@@ -56,7 +56,7 @@ void Console::clear() {
 
 void Console::shutdown() {
     if (font) {
-        vita2d_free_pgf(font);
+        vita2d_free_font(font);
         font = nullptr; 
     }
 }

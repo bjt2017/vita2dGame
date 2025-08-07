@@ -36,6 +36,12 @@ class Tree : public Object<TreeStateData, TreeState> {
                 };
             }
         }
+        static void free_assets() {
+            if (leaf) {
+                vita2d_free_texture(leaf);
+                leaf = nullptr;
+            }
+        }
         void init_all_states() override;
         void draw() override;
         void update() override;

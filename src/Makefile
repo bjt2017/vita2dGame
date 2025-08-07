@@ -3,7 +3,7 @@ TITLE_ID = VITA2DTST
 TARGET_NAME = Farmland
 TARGET_DIR = out
 TARGET = $(TARGET_DIR)/$(TARGET_NAME)
-OBJS     = main.o player.o map.o console.o utils.o rect.o polygon.o tree.o $(ASSETS_OBJS)
+OBJS     = main.o player.o map.o console.o utils.o rect.o polygon.o tree.o dialogue.o box.o $(ASSETS_OBJS)
 
 # Configuration du compilateur et des flags
 PREFIX   = arm-vita-eabi
@@ -24,7 +24,7 @@ ASSETS_OBJS := $(ASSETS_PNGS:.png=.o)
 
 # Ajouter les chemins pour les includes et les librairies de libvita2d et tmxlite
 CFLAGS += -I../libvita2d/include -I/usr/local/include/tmxlite -Iinclude/ 
-LIBS   += -L../libvita2d -L/usr/local/lib -ltmxlite -Linclude 
+LIBS   += -L../libvita2d -L/usr/local/lib -ltmxlite -Linclude -lbz2
 
 # Commande principale pour tout générer
 all: check_out_dir $(TARGET).vpk
@@ -38,6 +38,7 @@ check_out_dir:
 	vita-mksfoex -d ATTRIBUTE=0x800 -s TITLE_ID=$(TITLE_ID) "$(TARGET_NAME)" param.sfo
 	vita-pack-vpk -s param.sfo -b eboot.bin \
 	-a assets/map.tmx=assets/map.tmx \
+	-a assets/Pixuf.ttf=assets/Pixuf.ttf \
 	-a ../sce_sys=sce_sys \
 	$@
 

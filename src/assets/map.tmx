@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="100" height="100" tilewidth="16" tileheight="16" infinite="0" nextlayerid="60" nextobjectid="189">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="100" height="100" tilewidth="16" tileheight="16" infinite="0" nextlayerid="60" nextobjectid="190">
  <tileset firstgid="1" source="../../../../Personelle/tiles/assets.tsx"/>
  <group id="45" name="main">
   <group id="37" name="water">
@@ -1943,7 +1943,7 @@
    </objectgroup>
   </group>
  </group>
- <group id="29" name="underground">
+ <group id="29" name="underground" visible="0">
   <layer id="28" name="underground_0_under" width="100" height="100">
    <data encoding="csv">
 2059,2060,2059,2060,2062,2062,2060,2062,2061,2061,2060,2061,2060,2060,2062,2061,2060,2059,2059,2059,2061,2060,2061,2061,2060,2061,2062,2062,2062,2062,2061,2060,2060,2059,2061,2060,2060,2059,2060,2062,2060,2062,2061,2059,2062,2059,2062,2061,2062,2060,2060,2059,2061,2060,2059,2062,2062,2060,2062,2061,2059,2061,2059,2060,2061,2060,2062,2061,2059,2061,2060,2062,2062,2059,2059,2059,2062,2062,2059,2062,2059,2061,2060,2060,2061,2062,2060,2061,2059,2059,2059,2060,2059,2060,2059,2059,2059,2059,2059,2059,
@@ -2392,6 +2392,12 @@
      <properties>
       <property name="map" value="main"/>
      </properties>
+    </object>
+    <object id="189" type="dialogue" x="288" y="372">
+     <properties>
+      <property name="texte" value="Statue du roi de cette ile"/>
+     </properties>
+     <point/>
     </object>
    </objectgroup>
   </group>

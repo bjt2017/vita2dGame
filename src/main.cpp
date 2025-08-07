@@ -36,6 +36,16 @@ int main() {
     map.init(player);
 
     Console::init();
+    UIBox::load_assets();
+
+    DialogueManager dialogueManager;
+    dialogueManager.start({
+        {"Benjamin","Bienvenue dans le jeu !"},
+        {"Bot","Utilisez les touches directionnelles pour vous déplacer."},
+        {"Benjamin","Appuyez sur START pour quitter."},
+        {"Bot", "test avec un texte plus long pour voir si le texte est bien coupé et s'il n'y a pas de problème d'affichage. C'est important de tester les limites des fonctionnalités pour s'assurer que tout fonctionne comme prévu."},
+        {"Benjamin","C'est tout pour le moment, amusez-vous bien !"}
+    });
 
     // Initialisation du touchpad
     sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
@@ -50,6 +60,7 @@ int main() {
 
     // Boucle principale du jeu
     while (1) {
+        
         sceCtrlPeekBufferPositive(0, &pad, 1);
 
         sceTouchPeek(SCE_TOUCH_PORT_FRONT, &touch_data, 1);
@@ -64,7 +75,7 @@ int main() {
             }
         }
         if (touch_data.reportNum == 0) {
-            Console::log("No touch detected");
+            Console::log(u8"No touch detected");
         }
 
         // Démarrer le render et effacer l'écran
@@ -75,8 +86,10 @@ int main() {
         if(map.transition.state == TransitionState::None){
             move(pad, player, map);
         }
+        dialogueManager.update(pad, previousPad);
         update(player, map);
         draw(player, map);
+        dialogueManager.draw();
 
         // Afficher les objets de collision, les portails et les logs
         if (player.debug) {
@@ -88,7 +101,8 @@ int main() {
         Console::clear();
         previousPad = pad;
     }
-
+    Tree::free_assets();
+    UIBox::free_assets();
     Console::shutdown();
     vita2d_fini();
     sceKernelExitProcess(0);
