@@ -184,6 +184,12 @@ void Player::update_cutscene(float deltaTime, Map& map) {
             }
 
             change(PlayerState::WALK);
+            // modifier la direction du joueur
+            if (moveX > 0) {
+                set_direction_x(RIGHT);
+            } else if (moveX < 0) {
+                set_direction_x(LEFT);
+            }
 
             if (cutscene.timer >= step.duration) {
                 // Fin du mouvement, on s'assure d'arriver exactement à la bonne position

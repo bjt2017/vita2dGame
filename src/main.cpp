@@ -7,7 +7,7 @@
 
 void move(SceCtrlData &pad, Player &player, Map &map);
 void draw(Player &player, Map &map);
-void update(Player &player, Map &map);
+void update(Player &player, Map &map, const SceCtrlData &pad, const SceCtrlData &previousPad);
 void show_debug_info(const Map& map,const SceCtrlData& pad,const SceCtrlData& previousPad);
 
 float ZOOM = 3.0f;
@@ -19,6 +19,8 @@ std::vector<Shape*> list_collide_rect = {};
 std::vector<std::unique_ptr<Portal>> list_portal;
 std::unordered_map<std::string, std::vector<Tree>> list_tree_by_map = {};
 std::vector<Tree>* list_tree = nullptr;
+
+std::vector<Character> list_character = {};
 
 int main() {
 
@@ -38,14 +40,8 @@ int main() {
     Console::init();
     UIBox::load_assets();
 
-    DialogueManager dialogueManager;
-    dialogueManager.start({
-        {"Benjamin","Bienvenue dans le jeu !"},
-        {"Bot","Utilisez les touches directionnelles pour vous déplacer."},
-        {"Benjamin","Appuyez sur START pour quitter."},
-        {"Bot", "test avec un texte plus long pour voir si le texte est bien coupé et s'il n'y a pas de problème d'affichage. C'est important de tester les limites des fonctionnalités pour s'assurer que tout fonctionne comme prévu."},
-        {"Benjamin","C'est tout pour le moment, amusez-vous bien !"}
-    });
+    Character::load_assets();
+    list_character.push_back(Character({217, 330}, "Test", "Character Description"));
 
     // Initialisation du touchpad
     sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
@@ -83,12 +79,12 @@ int main() {
         vita2d_clear_screen();
 
         //update player position and animation
-        if(map.transition.state == TransitionState::None){
+        if(map.transition.state == TransitionState::None && !dialogueManager.is_active()){
             move(pad, player, map);
         }
-        dialogueManager.update(pad, previousPad);
-        update(player, map);
+        update(player, map, pad, previousPad);
         draw(player, map);
+        dialogueManager.update(pad, previousPad);
         dialogueManager.draw();
 
         // Afficher les objets de collision, les portails et les logs
@@ -101,6 +97,7 @@ int main() {
         Console::clear();
         previousPad = pad;
     }
+    Character::free_texture();
     Tree::free_assets();
     UIBox::free_assets();
     Console::shutdown();
@@ -109,7 +106,7 @@ int main() {
     return 0;
 }
 
-void update(Player &player, Map &map){
+void update(Player &player, Map &map, const SceCtrlData &pad, const SceCtrlData &previousPad) {
     player.update();
     if (player.is_playing_cutsense()) {
         player.update_cutscene(1.0f / 60.0f, map);
@@ -117,6 +114,9 @@ void update(Player &player, Map &map){
     map.update(player);
     for(Tree &tree : *list_tree){
         tree.update();
+    }
+    for(Character &character : list_character) {
+        character.update(player, pad, previousPad, dialogueManager.is_active());
     }
 }
 
@@ -171,9 +171,34 @@ void draw(Player &player, Map &map)
             bool draw_player = !is_player_draw && Utils::split(name, '_', 0)!="tiles" && layer_type_str != "alwaysunder" && (actual_layer == player.get_layer()+1 || layer_type_str == "over");
             
             if (draw_player) {
+                const auto [player_left, player_right, player_top, player_bottom] = player.get_position();
+
+                // 1. Draw characters above the player
+                for (Character& character : list_character) {
+                    if (!character.get_rect().on_screen()) continue;
+
+                    const auto [char_left, char_right, char_top, char_bottom] = character.get_rect().get_position();
+                    if (char_bottom < player_bottom) {
+                        character.draw();
+                    }
+                }
+
+                // 2. Draw the player
                 player.draw();
+
+                // 3. Draw characters below the player
+                for (Character& character : list_character) {
+                    if (!character.get_rect().on_screen()) continue;
+
+                    const auto [char_left, char_right, char_top, char_bottom] = character.get_rect().get_position();
+                    if (char_bottom >= player_bottom) {
+                        character.draw();
+                    }
+                }
+
                 is_player_draw = true;
             }
+
             if(draw_layer) map.draw_layer(tile_layer,layer_type);
         }
     }

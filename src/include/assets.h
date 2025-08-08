@@ -1,5 +1,6 @@
 extern unsigned char _binary_assets_Characters_Idle_base_png_start;
 extern unsigned char _binary_assets_Characters_Idle_bowlhair_png_start;
+extern unsigned char _binary_assets_Characters_Idle_longhair_png_start;
 extern unsigned char _binary_assets_Characters_Idle_tools_png_start;
 
 extern unsigned char _binary_assets_Characters_Walk_base_png_start;
@@ -14,6 +15,8 @@ extern unsigned char _binary_assets_Characters_Swimming_base_png_start;
 extern unsigned char _binary_assets_Characters_Swimming_bowlhair_png_start;
 extern unsigned char _binary_assets_Characters_Swimming_tools_png_start;
 
+extern unsigned char _binary_assets_Characters_shadow_png_start;
+
 extern unsigned char _binary_assets_Tree_leaf_png_start;
 
 extern unsigned char _binary_assets_UI_lt_box_9slice_bc_png_start;
@@ -27,5 +30,7 @@ extern unsigned char _binary_assets_UI_lt_box_9slice_tl_png_start;
 extern unsigned char _binary_assets_UI_lt_box_9slice_tr_png_start;
 
 extern unsigned char _binary_assets_UI_indicator_png_start;
+extern unsigned char _binary_assets_UI_expression_chat_png_start;
+
 
 

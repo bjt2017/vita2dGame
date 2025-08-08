@@ -3,7 +3,7 @@ TITLE_ID = VITA2DTST
 TARGET_NAME = Farmland
 TARGET_DIR = out
 TARGET = $(TARGET_DIR)/$(TARGET_NAME)
-OBJS     = main.o player.o map.o console.o utils.o rect.o polygon.o tree.o dialogue.o box.o $(ASSETS_OBJS)
+OBJS     = main.o player.o map.o console.o utils.o rect.o polygon.o tree.o dialogue.o box.o character.o $(ASSETS_OBJS)
 
 # Configuration du compilateur et des flags
 PREFIX   = arm-vita-eabi

@@ -36,3 +36,5 @@ private:
     size_t char_index = 0;
     float char_speed = 0.03f;
 };
+
+extern DialogueManager dialogueManager;

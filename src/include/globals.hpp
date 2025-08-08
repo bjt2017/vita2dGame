@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <set>
 #include <stack>
+#include "character.h"
 
 // Variables externes pour charger les assets des images
 extern unsigned char _binary_assets_assets_png_start;
@@ -68,4 +69,5 @@ extern std::unordered_map<std::string, std::vector<Tree>> list_tree_by_map;
 extern std::vector<Tree>* list_tree;
 
 
-
+extern std::vector<Character> list_character;
+ 

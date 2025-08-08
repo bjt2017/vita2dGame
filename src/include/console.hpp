@@ -27,7 +27,6 @@ private:
     static std::vector<std::string> warnings;
     static std::vector<std::string> errors;
     static bool ready;
-    
 };
 
 #endif
